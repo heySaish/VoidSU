@@ -59,7 +59,7 @@ void ksu_compat_sulog(uint8_t sym)
 #if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE
 	ktime_get_boottime_ts64(&ts);
 #else
-	get_monotonic_boottime(&ts);
+	get_monotonic_boottime64(&ts);
 #endif
     entry.s_time = (uint32_t)ts.tv_sec;
     entry.data = (uint32_t)uid;
@@ -94,7 +94,7 @@ int ksu_sulog_handle_compat_dump(void __user *uptr)
 #if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE
 	ktime_get_boottime_ts64(&ts);
 #else
-	get_monotonic_boottime(&ts);
+	get_monotonic_boottime64(&ts);
 #endif
     uptime = (uint32_t)ts.tv_sec;
     if (copy_to_user((void __user *)(uintptr_t)sbuf.uptime_ptr, &uptime, sizeof(uptime)))
