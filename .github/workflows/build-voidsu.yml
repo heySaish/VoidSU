@@ -31,29 +31,16 @@ jobs:
 
       - name: Setup Keystore
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE }}
-          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
           DEFAULT_KEYSTORE_B64: "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"
         run: |
-          if [ ! -z "$KEYSTORE_BASE64" ] && [ ! -z "$KEYSTORE_PASS" ]; then
-            echo "Using custom KEYSTORE secret..."
-            {
-              echo KEYSTORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}'
-              echo KEY_ALIAS='${{ secrets.KEY_ALIAS }}'
-              echo KEY_PASSWORD='${{ secrets.KEY_PASSWORD }}'
-              echo KEYSTORE_FILE='key.jks'
-            } >> gradle.properties
-            python3 -c "import base64, os; d = os.environ['KEYSTORE_BASE64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
-          else
-            echo "Using embedded VoidSU fixed keystore..."
-            {
-              echo KEYSTORE_FILE='key.jks'
-              echo KEYSTORE_PASSWORD='voidsu123'
-              echo KEY_ALIAS='voidsu'
-              echo KEY_PASSWORD='voidsu123'
-            } >> gradle.properties
-            python3 -c "import base64, os; d = os.environ['DEFAULT_KEYSTORE_B64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
-          fi
+          echo "Using embedded VoidSU fixed keystore..."
+          {
+            echo KEYSTORE_FILE='key.jks'
+            echo KEYSTORE_PASSWORD='voidsu123'
+            echo KEY_ALIAS='voidsu'
+            echo KEY_PASSWORD='voidsu123'
+          } >> gradle.properties
+          python3 -c "import base64, os; d = os.environ['DEFAULT_KEYSTORE_B64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
 
       - name: Setup Java
         uses: actions/setup-java@v4
