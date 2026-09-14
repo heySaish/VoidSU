@@ -42,7 +42,7 @@ jobs:
       if: ${{ inputs.pack_ksuinit }}
       run: |
         mkdir -p ./userspace/ksud/bin/aarch64/
-        find ksuinit -type f -name "ksuinit" -exec cp -f {} ./userspace/ksud/bin/aarch64/ \;
+        find . -type f -name "ksuinit" -exec cp -f {} ./userspace/ksud/bin/aarch64/ \;
         
     - name: Setup rustup
       run: |
