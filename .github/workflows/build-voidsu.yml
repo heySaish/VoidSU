@@ -40,7 +40,7 @@ jobs:
               echo KEY_PASSWORD='${{ secrets.KEY_PASSWORD }}'
               echo KEYSTORE_FILE='key.jks'
             } >> gradle.properties
-            python3 -c "import base64, os; open('key.jks', 'wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64'].strip()))"
+            python3 -c "import base64, os; d = os.environ['KEYSTORE_BASE64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
           fi
 
       - name: Setup Java
