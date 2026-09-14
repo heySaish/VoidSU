@@ -29,11 +29,13 @@ jobs:
             echo "UPLOAD=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Write key
+      - name: Setup Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE }}
+          KEYSTORE_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
-          if [ ! -z "$KEYSTORE_BASE64" ]; then
+          if [ ! -z "$KEYSTORE_BASE64" ] && [ ! -z "$KEYSTORE_PASS" ]; then
+            echo "Using custom KEYSTORE secret..."
             {
               echo KEYSTORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}'
               echo KEY_ALIAS='${{ secrets.KEY_ALIAS }}'
@@ -41,6 +43,15 @@ jobs:
               echo KEYSTORE_FILE='key.jks'
             } >> gradle.properties
             python3 -c "import base64, os; d = os.environ['KEYSTORE_BASE64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
+          else
+            echo "Auto-generating VoidSU keystore..."
+            keytool -genkeypair -v -keystore key.jks -alias voidsu -keyalg RSA -keysize 2048 -validity 10000 -storepass voidsu123 -keypass voidsu123 -dname "CN=VoidSU, OU=Void, O=Void, L=City, ST=State, C=US"
+            {
+              echo KEYSTORE_FILE='key.jks'
+              echo KEYSTORE_PASSWORD='voidsu123'
+              echo KEY_ALIAS='voidsu'
+              echo KEY_PASSWORD='voidsu123'
+            } >> gradle.properties
           fi
 
       - name: Setup Java
