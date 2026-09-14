@@ -2,7 +2,7 @@ name: Build Manager CI
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "dev", "main", "master" ]
     paths:
       - '.github/workflows/build-manager.yml'
       - '.github/workflows/build-lkm.yml'
@@ -11,7 +11,7 @@ on:
       - 'kernel/**'
       - 'userspace/**'
   pull_request:
-    branches: [ "dev" ]
+    branches: [ "dev", "main", "master" ]
     paths:
       - '.github/workflows/build-manager.yml'
       - '.github/workflows/build-lkm.yml'
