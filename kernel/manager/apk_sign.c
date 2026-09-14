@@ -348,17 +348,13 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 
 bool is_manager_apk(char *path)
 {
-#ifdef KSU_MANAGER_PACKAGE
 	char pkg[KSU_MAX_PACKAGE_NAME];
-	if (get_pkg_from_apk_path(pkg, path) < 0) {
-		pr_err("Failed to get package name from apk path: %s\n", path);
-		return false;
+	if (get_pkg_from_apk_path(pkg, path) == 0) {
+		if (strcmp(pkg, "com.voidkernel.voidsu") == 0 ||
+		    strcmp(pkg, "org.kernel_su.next") == 0 ||
+		    strcmp(pkg, "com.rifs.ksu") == 0) {
+			return true;
+		}
 	}
-
-	// pkg is `<real package>`
-	if (strncmp(pkg, KSU_MANAGER_PACKAGE, sizeof(KSU_MANAGER_PACKAGE))) {
-		return false;
-	}
-#endif
 	return check_v2_signature(path, EXPECTED_MANAGER_SIZE, EXPECTED_MANAGER_HASH);
 }
