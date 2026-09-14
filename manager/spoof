@@ -16,14 +16,14 @@ export word1 word2 word3
 
 # Rename directories
 find . -depth -type d -name 'com' -execdir mv {} "$word1" \;
-find . -depth -type d -name 'rifsxd' -execdir mv {} "$word2" \;
-find . -depth -type d -name 'ksunext' -execdir mv {} "$word3" \;
+find . -depth -type d -name 'voidkernel' -execdir mv {} "$word2" \;
+find . -depth -type d -name 'voidsu' -execdir mv {} "$word3" \;
 
 # Replace inside files
 find . -type f -exec sed -i \
-    -e "s/com\.rifsxd\.ksunext/$word1.$word2.$word3/g" \
-    -e "s/com\/rifsxd\/ksunext/$word1\/$word2\/$word3/g" \
-    -e "s/com_rifsxd_ksunext/${word1}_${word2}_${word3}/g" {} +
+    -e "s/com\.voidkernel\.voidsu/$word1.$word2.$word3/g" \
+    -e "s/com\/voidkernel\/voidsu/$word1\/$word2\/$word3/g" \
+    -e "s/com_voidkernel_voidsu/${word1}_${word2}_${word3}/g" {} +
 
 # Append '-spoofed' to managerVersionName in build.gradle.kts
 if [ -f "./build.gradle.kts" ]; then

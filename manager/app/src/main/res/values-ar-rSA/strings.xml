@@ -5,7 +5,7 @@
   <string name="issue_report_body_2">بلغ في اسرع وقت ممكن!</string>
   <string name="issue_report_github">بلغ في GitHub</string>
   <string name="issue_report_telegram">تواصل عبر تيلي جرام</string>
-  <string name="issue_report_github_link">https://github.com/KernelSU-Next/KernelSU-Next/issues</string>
+  <string name="issue_report_github_link">https://github.com/heySaish/VoidSU/issues</string>
   <string name="issue_report_telegram_link">https://t.me/ksunext</string>
   <string name="confirm">تأكيد</string>
   <string name="home">تأكيد</string>
@@ -239,7 +239,7 @@
   <string name="settings_enable_avc_spoof">تزييف AVC</string>
   <string name="settings_enable_avc_spoof_summary">إصلاح تسرب SELinux context بسبب رفض AVC في سجل المراجعة.</string>
   <string name="manage_repositories">إدارة المستودعات</string>
-  <string name="app_name">KernelSU-Next</string>
+  <string name="app_name">VoidSU</string>
   <string name="require_kernel_version">!</string>
   <string name="profile_umount_modules_summary">.</string>
   <string name="settings_uninstall_temporary_message"></string>
