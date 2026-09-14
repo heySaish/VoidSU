@@ -4,15 +4,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-lkm:
-    uses: ./.github/workflows/build-lkm.yml
-    secrets: inherit
-
   build-ksuinit:
     uses: ./.github/workflows/ksuinit.yml
 
   build-ksud:
-    needs: [build-lkm, build-ksuinit]
+    needs: [build-ksuinit]
     strategy:
       matrix:
         include:
