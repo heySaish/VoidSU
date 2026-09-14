@@ -328,6 +328,7 @@ Java_com_rifsxd_ksunext_Natives_setAppProfile(JNIEnv *env, jobject clazz, jobjec
         env->ReleaseStringUTFChars((jstring) domain, cdomain);
 
         p.rp_config.profile.namespaces = env->GetIntField(profile, namespacesField);
+        p.rp_config.profile.flags = FLAG_KSU_NO_NEW_PRIVS;
     } else {
         p.nrp_config.use_default = env->GetBooleanField(profile, nonRootUseDefaultField);
         p.nrp_config.profile.umount_modules = umountModules;

@@ -175,6 +175,7 @@ object Natives {
         val nonRootUseDefault: Boolean = true,
         val umountModules: Boolean = true,
         var rules: String = "", // this field is save in ksud!!
+        val flags: Long = FLAG_KSU_NO_NEW_PRIVS,
     ) : Parcelable {
         enum class Namespace {
             INHERITED,
@@ -184,4 +185,6 @@ object Natives {
 
         constructor() : this("")
     }
+
+    const val FLAG_KSU_NO_NEW_PRIVS = 1L
 }
