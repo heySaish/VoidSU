@@ -2,7 +2,7 @@ name: Build VoidSU
 
 on:
   push:
-    branches: [ "main", "master", "dev", "stable" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
