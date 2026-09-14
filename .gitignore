@@ -2,3 +2,5 @@
 .vscode
 CLAUDE.md
 AGENTS.md
+github_secrets.txt
+*.jks
