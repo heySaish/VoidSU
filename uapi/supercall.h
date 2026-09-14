@@ -6,6 +6,9 @@
 
 #include "uapi/app_profile.h"
 
+// 4: allowlist v4 root profile flags
+static const __u32 KERNEL_SU_UAPI_VERSION = 4;
+
 /* Magic numbers for reboot hook to install fd */
 static const __u32 KSU_INSTALL_MAGIC1 = 0xDEADBEEF;
 static const __u32 KSU_INSTALL_MAGIC2 = 0xCAFEBABE;
@@ -35,6 +38,13 @@ struct ksu_get_info_cmd {
     __u32 version; /* Output: KERNEL_SU_VERSION */
     __u32 flags; /* Output: KSU_GET_INFO_FLAG_* bits */
     __u32 features; /* Output: max feature ID supported */
+    __u32 uapi_version; /* Output: KERNEL_SU_UAPI_VERSION */
+};
+
+struct ksu_get_info_legacy_cmd {
+    __u32 version; /* Output: KERNEL_SU_VERSION */
+    __u32 flags; /* Output: KSU_GET_INFO_FLAG_* bits */
+    __u32 features; /* Output: max feature ID supported */
 };
 
 struct ksu_report_event_cmd {
@@ -50,17 +60,6 @@ struct ksu_sepolicy_cmd_hdr {
     __u32 cmd; /* Input: command type, CMD_* */
     __u32 subcmd; /* Input: command subtype */
 };
-/*
- * After each ksu_sepolicy_cmd_hdr, command arguments are encoded sequentially as:
- * [u32 len][len bytes][\0], where len excludes the trailing '\0'.
- * len == 0 represents ALL.
- * Argument count is derived from cmd:
- * KSU_SEPOLICY_CMD_NORMAL_PERM=4, KSU_SEPOLICY_CMD_XPERM=5,
- * KSU_SEPOLICY_CMD_TYPE_STATE=1, KSU_SEPOLICY_CMD_TYPE=2,
- * KSU_SEPOLICY_CMD_TYPE_ATTR=2, KSU_SEPOLICY_CMD_ATTR=1,
- * KSU_SEPOLICY_CMD_TYPE_TRANSITION=5, KSU_SEPOLICY_CMD_TYPE_CHANGE=4,
- * KSU_SEPOLICY_CMD_GENFSCON=3.
- */
 
 struct ksu_check_safemode_cmd {
     __u8 in_safe_mode; /* Output: true if in safe mode, false otherwise */
@@ -146,13 +145,19 @@ struct ksu_add_try_umount_cmd {
     __u8 mode; /* denotes what to do with it 0:wipe_list 1:add_to_list 2:delete_entry */
 };
 
+struct ksu_get_sulog_fd_cmd {
+    __u32 flags; /* Input: reserved for future use, must be 0 */
+};
+
 static const __u8 KSU_UMOUNT_WIPE = 0; /* ignore everything and wipe list */
 static const __u8 KSU_UMOUNT_ADD = 1; /* add entry (path + flags) */
 static const __u8 KSU_UMOUNT_DEL = 2; /* delete entry, strcmp */
 
 /* IOCTL command definitions */
 static const __u32 KSU_IOCTL_GRANT_ROOT = _IOC(_IOC_NONE, 'K', 1, 0);
-static const __u32 KSU_IOCTL_GET_INFO = _IOC(_IOC_READ, 'K', 2, 0);
+static const __u32 KSU_IOCTL_GET_INFO = _IOR('K', 2, struct ksu_get_info_cmd);
+/* deprecated */
+static const __u32 KSU_IOCTL_GET_INFO_LEGACY = _IOC(_IOC_READ, 'K', 2, 0);
 static const __u32 KSU_IOCTL_REPORT_EVENT = _IOC(_IOC_WRITE, 'K', 3, 0);
 static const __u32 KSU_IOCTL_SET_SEPOLICY = _IOC(_IOC_READ | _IOC_WRITE, 'K', 4, 0);
 static const __u32 KSU_IOCTL_CHECK_SAFEMODE = _IOC(_IOC_READ, 'K', 5, 0);
@@ -174,6 +179,8 @@ static const __u32 KSU_IOCTL_MANAGE_MARK = _IOC(_IOC_READ | _IOC_WRITE, 'K', 16,
 static const __u32 KSU_IOCTL_NUKE_EXT4_SYSFS = _IOC(_IOC_WRITE, 'K', 17, 0);
 static const __u32 KSU_IOCTL_ADD_TRY_UMOUNT = _IOC(_IOC_WRITE, 'K', 18, 0);
 static const __u32 KSU_IOCTL_SET_INIT_PGRP = _IO('K', 19);
+static const __u32 KSU_IOCTL_GET_SULOG_FD = _IOW('K', 20, struct ksu_get_sulog_fd_cmd);
+static const __u32 KSU_IOCTL_DISABLE_ESCAPE_TO_ROOT = _IO('K', 21);
 static const __u32 KSU_IOCTL_GET_HOOK_MODE = _IOC(_IOC_READ, 'K', 98, 0);
 static const __u32 KSU_IOCTL_GET_VERSION_TAG = _IOC(_IOC_READ, 'K', 99, 0);
 
