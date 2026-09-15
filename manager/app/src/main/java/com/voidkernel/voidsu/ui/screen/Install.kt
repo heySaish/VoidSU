@@ -242,18 +242,7 @@ private fun SelectInstallMethod(onSelected: (InstallMethod) -> Unit = {}) {
     )
     val radioOptions = mutableListOf<InstallMethod>()
 
-    radioOptions.add(InstallMethod.SelectFile(summary = selectFileTip))
-
-    if (rootAvailable) {
-        if (kernelVersion.isGKI()) {
-            radioOptions.add(InstallMethod.DirectInstall)
-            if (isAbDevice) {
-                radioOptions.add(InstallMethod.DirectInstallToInactiveSlot)
-            }
-        }
-
-        radioOptions.add(InstallMethod.AnyKernel())
-    }
+    radioOptions.add(InstallMethod.AnyKernel())
 
     var selectedOption by remember { mutableStateOf<InstallMethod?>(null) }
     val selectImageLauncher = rememberLauncherForActivityResult(

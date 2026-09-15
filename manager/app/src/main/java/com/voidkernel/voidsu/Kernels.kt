@@ -69,3 +69,15 @@ fun getKernelVersion(): KernelVersion {
         return parseKernelVersion(it)
     }
 }
+
+fun getVoidKernelVersion(): String? {
+    return runCatching {
+        val sysfsVersion = java.io.File("/sys/kernel/void_kernel/version")
+        if (sysfsVersion.exists()) {
+            sysfsVersion.readText().trim()
+        } else {
+            val sysfsAlt = java.io.File("/sys/kernel/voidsu/version")
+            if (sysfsAlt.exists()) sysfsAlt.readText().trim() else null
+        }
+    }.getOrNull()
+}
