@@ -117,7 +117,7 @@ fun ModuleScreen(navigator: DestinationsNavigator) {
 
     val hideInstallButton = isSafeMode || hasMagisk
 
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     var zipUri by remember { mutableStateOf<Uri?>(null) }
     var zipUris by remember { mutableStateOf<List<Uri>>(emptyList()) }

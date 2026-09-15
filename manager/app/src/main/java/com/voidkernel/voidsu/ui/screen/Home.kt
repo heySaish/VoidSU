@@ -95,7 +95,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun HomeScreen(navigator: DestinationsNavigator) {
     val kernelVersion = getKernelVersion()
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
     val isManager = Natives.isManager
     val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
@@ -166,43 +166,6 @@ fun HomeScreen(navigator: DestinationsNavigator) {
             val homeDestination = BottomBarDestination.entries.firstOrNull()
             val startRoute = homeDestination?.direction?.route
 
-            if (fullFeatured) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        SuperuserCard(
-                            onClick = {
-                                navigator.navigate(SuperUserScreenDestination) {
-                                    popUpTo(NavGraphs.root.startRoute) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        ModuleCard(
-                            onClick = {
-                                navigator.navigate(ModuleScreenDestination) {
-                                    popUpTo(NavGraphs.root.startRoute) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
             if (isManager && Natives.requireNewKernel()) {
                 WarningCard(
                     stringResource(id = R.string.require_kernel_version).format(
@@ -229,7 +192,6 @@ fun HomeScreen(navigator: DestinationsNavigator) {
 
             InfoCard(autoExpand = developerOptionsEnabled)
             IssueReportCard()
-            ContributorsCard()
             Spacer(Modifier)
         }
     }
@@ -635,7 +597,7 @@ private fun TopBar(
         rotationTarget += 360f * 6
     }
 
-        TopAppBar(
+        LargeTopAppBar(
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -831,13 +793,10 @@ private fun StatusCard(
                             )
                         }
 
-                        val versionText = if (!ksuVersionTag.isNullOrEmpty()) {
-                            stringResource(id = R.string.home_working_version, ksuVersionTag, ksuVersion ?: 0)
-                        } else {
-                            stringResource(id = R.string.home_working_version, "v0.0.0", ksuVersion ?: 0)
-                        }
+                        val superuserCount = getSuperuserCount()
+                        val moduleCount = getModuleCount()
                         Text(
-                            text = versionText,
+                            text = "SuperUser: $superuserCount, Modules: $moduleCount",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -924,7 +883,11 @@ private fun InfoCard(autoExpand: Boolean = false) {
         }
     }   
 
-    Card {
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1279,7 +1242,11 @@ fun IssueReportCard() {
     val githubIssueUrl = stringResource(R.string.issue_report_github_link)
     val telegramUrl = stringResource(R.string.issue_report_telegram_link)
 
-    Card {
+    ElevatedCard(
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
