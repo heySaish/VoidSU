@@ -22,6 +22,7 @@
 #include "selinux/selinux.h"
 #include "feature/selinux_hide.h"
 #include "feature/adb_root.h"
+#include "void_version.h"
 
 extern void __init ksu_lsm_hook_init(void);
 extern int ksu_handle_execveat_sucompat(int *fd, struct filename **filename_ptr,
@@ -104,6 +105,8 @@ int __init kernelsu_init(void)
 	ksu_sulog_init();
 
 	ksu_supercalls_init();
+
+	void_version_init();
 
 	
 
@@ -188,6 +191,8 @@ void __exit kernelsu_exit(void)
 	ksu_adb_root_exit();
 
 	ksu_feature_exit();
+
+	void_version_exit();
 
 	if (ksu_cred) {
 		put_cred(ksu_cred);
