@@ -662,8 +662,6 @@ private fun TopBar(
                 fontWeight = FontWeight.Black,
             )
         },
-        collapsedTitleTextStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
-        expandedTitleTextStyle = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp, fontWeight = FontWeight.Black),
         windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
         scrollBehavior = scrollBehavior
     )

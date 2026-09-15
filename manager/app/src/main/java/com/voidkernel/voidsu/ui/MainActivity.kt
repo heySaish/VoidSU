@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -268,7 +269,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val context = LocalContext.current
-                val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+                val prefs = remember(context) { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
                 val enableFloatingBottomBar = remember { mutableStateOf(prefs.getBoolean("enable_floating_bottom_bar", false)) }
 
                 DisposableEffect(context) {
