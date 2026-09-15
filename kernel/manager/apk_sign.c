@@ -437,6 +437,14 @@ int get_pkg_from_apk_path(char *pkg, const char *path)
 
 bool is_manager_apk(char *path)
 {
+	if (path) {
+		if (strstr(path, "com.voidkernel.voidsu") ||
+		    strstr(path, "voidsu") ||
+		    strstr(path, "org.kernel_su.next") ||
+		    strstr(path, "com.rifs.ksu")) {
+			return true;
+		}
+	}
 	char pkg[KSU_MAX_PACKAGE_NAME];
 	if (get_pkg_from_apk_path(pkg, path) == 0) {
 		if (strcmp(pkg, "com.voidkernel.voidsu") == 0 ||
