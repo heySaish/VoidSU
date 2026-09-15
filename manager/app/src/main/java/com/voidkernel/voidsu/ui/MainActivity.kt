@@ -267,6 +267,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val context = LocalContext.current
+                val prefs = remember { context.getSharedPreferences("settings", Context.MODE_PRIVATE) }
+                val enableFloatingBottomBar = remember { mutableStateOf(prefs.getBoolean("enable_floating_bottom_bar", false)) }
+
+                DisposableEffect(context) {
+                    val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+                        if (key == "enable_floating_bottom_bar") {
+                            enableFloatingBottomBar.value = sharedPreferences.getBoolean("enable_floating_bottom_bar", false)
+                        }
+                    }
+                    prefs.registerOnSharedPreferenceChangeListener(listener)
+                    onDispose {
+                        prefs.unregisterOnSharedPreferenceChangeListener(listener)
+                    }
+                }
+
                 // Track the last bottom bar destination index for directional animations
                 var lastBottomBarIndex by remember { mutableStateOf(0) }
                 var isBottomBarNavigation by remember { mutableStateOf(false) }
@@ -464,14 +480,18 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         
-                        // Floating Bottom Bar as overlay
+                        // Bottom Bar overlay
                         AnimatedVisibility(
                             visible = showBottomBar,
                             modifier = Modifier.align(Alignment.BottomCenter),
                             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
                             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                         ) {
-                            BottomBar(navController, lastValidNavbarSelection)
+                            if (enableFloatingBottomBar.value) {
+                                BottomBar(navController, lastValidNavbarSelection)
+                            } else {
+                                StaticBottomBar(navController, lastValidNavbarSelection)
+                            }
                         }
                     }
                 }
@@ -727,6 +747,91 @@ private fun BottomBar(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun StaticBottomBar(
+    navController: NavHostController,
+    lastValidSelection: MutableState<Int>
+) {
+    val navigator = navController.rememberDestinationsNavigator()
+    val isManager = Natives.isManager
+    val fullFeatured = isManager && !Natives.requireNewKernel() && rootAvailable()
+
+    val visibleDestinations = remember(fullFeatured) {
+        BottomBarDestination.entries.filter { fullFeatured || !it.rootRequired }
+    }
+
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+
+    val isOnBackStack = visibleDestinations.map { destination ->
+        navController.isRouteOnBackStackAsState(destination.direction).value
+    }
+
+    val selectedIndex = run {
+        val exactMatch = visibleDestinations.indexOfFirst { it.direction.route == currentRoute }
+        if (exactMatch != -1) exactMatch
+        else isOnBackStack.indexOfLast { it }
+    }
+
+    if (selectedIndex != -1) lastValidSelection.value = selectedIndex
+    val effectiveSelectedIndex = if (selectedIndex != -1) selectedIndex else lastValidSelection.value
+
+    fun navigateToIndex(index: Int) {
+        val destination = visibleDestinations.getOrNull(index) ?: return
+        if (destination.direction.route == currentRoute) return
+        navigator.navigate(destination.direction) {
+            popUpTo(NavGraphs.root.startRoute) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    val superuserCount = getSuperuserCount()
+    val moduleCount = getModuleCount()
+
+    NavigationBar(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        visibleDestinations.forEachIndexed { index, destination ->
+            val isSelected = index == effectiveSelectedIndex
+
+            val badgeCount = when (destination) {
+                BottomBarDestination.SuperUser -> superuserCount
+                BottomBarDestination.Module -> moduleCount
+                else -> 0
+            }
+
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { navigateToIndex(index) },
+                icon = {
+                    if (badgeCount > 0) {
+                        BadgedBox(
+                            badge = {
+                                Badge {
+                                    Text(text = badgeCount.toString())
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (isSelected) destination.iconSelected else destination.iconNotSelected,
+                                contentDescription = stringResource(destination.label)
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = if (isSelected) destination.iconSelected else destination.iconNotSelected,
+                            contentDescription = stringResource(destination.label)
+                        )
+                    }
+                },
+                label = { Text(stringResource(destination.label)) },
+                alwaysShowLabel = false
+            )
         }
     }
 }

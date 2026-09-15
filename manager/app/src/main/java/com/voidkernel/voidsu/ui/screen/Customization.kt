@@ -283,6 +283,21 @@ fun CustomizationScreen(navigator: DestinationsNavigator) {
                 }
             }
 
+            var enableFloatingBottomBar by rememberSaveable {
+                mutableStateOf(
+                    prefs.getBoolean("enable_floating_bottom_bar", false)
+                )
+            }
+            SwitchItem(
+                icon = Icons.Filled.ViewCarousel,
+                title = stringResource(id = R.string.settings_floating_bottom_bar),
+                summary = stringResource(id = R.string.settings_floating_bottom_bar_summary),
+                checked = enableFloatingBottomBar
+            ) { checked ->
+                prefs.edit { putBoolean("enable_floating_bottom_bar", checked) }
+                enableFloatingBottomBar = checked
+            }
+
             var enableAmoled by rememberSaveable {
                 mutableStateOf(
                     prefs.getBoolean("enable_amoled", false)

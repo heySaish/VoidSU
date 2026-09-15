@@ -189,6 +189,8 @@
     <string name="system_default">System default</string>
     <string name="settings_banner">Enable banners</string>
     <string name="settings_banner_summary">Show background banners for modules.</string>
+    <string name="settings_floating_bottom_bar">Floating bottom bar</string>
+    <string name="settings_floating_bottom_bar_summary">Use floating style for bottom navigation bar.</string>
     <string name="customization">Customization</string>
     <string name="developer">Developer</string>
     <string name="sucompat_disabled">SUCOMPAT DISABLED</string>

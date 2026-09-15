@@ -616,17 +616,19 @@ private fun TopBar(
                     contentDescription = null,
                     modifier = Modifier
                         .padding(end = 8.dp)
+                        .size(32.dp)
                         .graphicsLayer {
                             rotationZ = rotation
                         }
                 )
                 Text(
                     text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black
                 )
             }
         },
+        collapsedTitleTextStyle = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Black),
+        expandedTitleTextStyle = MaterialTheme.typography.headlineLarge.copy(fontSize = 34.sp, fontWeight = FontWeight.Black),
         actions = {
             if (ksuVersion != null) {
                 var showDropdown by remember { mutableStateOf(false) }
