@@ -9,7 +9,7 @@ import coil.Coil
 import coil.ImageLoader
 import com.voidkernel.voidsu.di.appModules
 import com.voidkernel.voidsu.domain.usecase.InitializeApplicationUseCase
-import com.voidkernel.voidsu.ui.util.createRootShellBuilder
+import com.voidkernel.voidsu.Natives.createRootShellBuilder
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

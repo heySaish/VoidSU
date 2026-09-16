@@ -59,6 +59,15 @@ object Natives {
         }
     }
 
+    @JvmStatic
+    fun createRootShellBuilder(global: Boolean = false): com.topjohnwu.superuser.Shell.Builder {
+        return com.topjohnwu.superuser.Shell.Builder.create().apply {
+            if (global) {
+                setFlags(com.topjohnwu.superuser.Shell.FLAG_MOUNT_MASTER)
+            }
+        }
+    }
+
     enum class KernelPatchImplementation {
         NONE, OFFICIAL, KPATCH_NEXT, SUKISU
     }
