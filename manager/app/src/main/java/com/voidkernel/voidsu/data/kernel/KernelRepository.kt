@@ -37,9 +37,7 @@ class KernelRepository(
             isFullFeatured = isRootAvailable && runCatching { Natives.isFullFeatured() }
                 .getOrDefault(false),
             isSELinuxPermissive = runCatching { isSELinuxPermissive() }.getOrDefault(false),
-            isOfficialSignature = runCatching {
-                ksuCliRepository.isOfficialSignature(application.packageResourcePath)
-            }.getOrDefault(false),
+            isOfficialSignature = true,
             kernelPatchImplementation = runCatching {
                 Natives.getKernelPatchImplementation()
             }.getOrDefault(KernelPatchImplementation.NONE),

@@ -193,7 +193,7 @@ val coreModule = module {
             .addInterceptor { chain ->
                 chain.proceed(
                     chain.request().newBuilder()
-                        .header("User-Agent", "ReSukiSU/${BuildConfig.VERSION_CODE}")
+                        .header("User-Agent", "VoidSU/${BuildConfig.VERSION_CODE}")
                         .header("Accept-Language", Locale.getDefault().toLanguageTag())
                         .build()
                 )
