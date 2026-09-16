@@ -5,7 +5,6 @@ import com.android.build.gradle.tasks.PackageAndroidArtifact
 
 plugins {
     alias(libs.plugins.agp.app)
-    alias(libs.plugins.kotlin)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.lsplugin.apksign)
@@ -66,11 +65,6 @@ android {
         buildConfig = true
         compose = true
         prefab = true
-    }
-
-    @Suppress("DEPRECATION")
-    kotlinOptions {
-        jvmTarget = "21"
     }
 
     packaging {
