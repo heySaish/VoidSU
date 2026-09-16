@@ -1,21 +1,36 @@
 package com.voidkernel.voidsu.ui.component.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReadMore
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
-import androidx.compose.material.icons.filled.Create
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.twotone.Article
+import androidx.compose.material.icons.automirrored.twotone.ReadMore
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import com.voidkernel.voidsu.Natives
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
+import com.voidkernel.voidsu.domain.model.AppProfile
 import com.voidkernel.voidsu.R
-import com.voidkernel.voidsu.ui.util.listAppProfileTemplates
-import com.voidkernel.voidsu.ui.util.setSepolicy
-import com.voidkernel.voidsu.ui.viewmodel.getTemplateInfoById
+import com.voidkernel.voidsu.ui.component.NetworkRefreshContent
+import com.voidkernel.voidsu.ui.component.settings.SettingsChooseWidget
+import com.voidkernel.voidsu.ui.util.ActivityResumeEffect
+import com.voidkernel.voidsu.ui.viewmodel.TemplateViewModel
+import com.voidkernel.voidsu.ui.viewmodel.TemplateUiAction
+import kotlinx.coroutines.launch
 
 /**
  * @author weishu
@@ -24,82 +39,84 @@ import com.voidkernel.voidsu.ui.viewmodel.getTemplateInfoById
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplateConfig(
-    profile: Natives.Profile,
+    profile: AppProfile,
     onViewTemplate: (id: String) -> Unit = {},
-    onManageTemplate: () -> Unit = {},
-    onProfileChange: (Natives.Profile) -> Unit
+    onProfileChange: (AppProfile) -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var template by rememberSaveable {
+    val viewModel = koinViewModel<TemplateViewModel>()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+
+    ActivityResumeEffect(viewModel) {
+        viewModel.dispatch(TemplateUiAction.Refresh())
+    }
+
+    var template by rememberSaveable(profile.rootTemplate) {
         mutableStateOf(profile.rootTemplate ?: "")
     }
-    val profileTemplates = listAppProfileTemplates()
-    val noTemplates = profileTemplates.isEmpty()
+    val profileTemplates = listOf("None") + uiState.profileTemplates
+    val profileTemplateNames = listOf("None") + uiState.profileTemplateNames
+    val currentIndex = profileTemplates.indexOf(template).let { if (it == -1) 0 else it }
 
-    ListItem(headlineContent = {
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = it },
-        ) {
-            OutlinedTextField(
+    SettingsChooseWidget(
+        icon = Icons.AutoMirrored.TwoTone.Article,
+        title = stringResource(R.string.profile_template),
+        items = profileTemplateNames,
+        selectedIndex = currentIndex,
+        emptyDialogContent = if (profileTemplates.size == 1) {
+            {
+                NetworkRefreshContent(
+                    offline = uiState.isOffline,
+                    onRetry = {
+                        scope.launch {
+                            viewModel.dispatch(TemplateUiAction.Refresh(synchronize = true))
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                )
+            }
+        } else {
+            null
+        },
+        afterContent = { index ->
+            if (index == 0) return@SettingsChooseWidget
+            Icon(
+                imageVector = Icons.AutoMirrored.TwoTone.ReadMore,
+                contentDescription = null,
                 modifier = Modifier
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-                readOnly = true,
-                label = { Text(stringResource(R.string.profile_template)) },
-                value = template.ifEmpty { "None" },
-                onValueChange = {},
-                trailingIcon = {
-                    if (noTemplates) {
-                        IconButton(
-                            onClick = onManageTemplate
-                        ) {
-                            Icon(Icons.Filled.Create, null)
-                        }
-                    } else if (expanded) Icon(Icons.Filled.ArrowDropUp, null)
-                    else Icon(Icons.Filled.ArrowDropDown, null)
-                },
+                    .size(35.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        onViewTemplate(profileTemplates[index])
+                    }
+                    .padding(5.dp)
             )
-            if (profileTemplates.isEmpty()) {
-                return@ExposedDropdownMenuBox
-            }
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                profileTemplates.forEach { tid ->
-                    val templateInfo =
-                        getTemplateInfoById(tid) ?: return@forEach
-                    DropdownMenuItem(
-                        text = { Text(tid) },
-                        onClick = {
-                            template = tid
-                            if (setSepolicy(tid, templateInfo.rules.joinToString("\n"))) {
-                                onProfileChange(
-                                    profile.copy(
-                                        rootTemplate = tid,
-                                        rootUseDefault = false,
-                                        uid = templateInfo.uid,
-                                        gid = templateInfo.gid,
-                                        groups = templateInfo.groups,
-                                        capabilities = templateInfo.capabilities,
-                                        context = templateInfo.context,
-                                        namespace = templateInfo.namespace,
-                                    )
-                                )
-                            }
-                            expanded = false
-                        },
-                        trailingIcon = {
-                            IconButton(onClick = {
-                                onViewTemplate(tid)
-                            }) {
-                                Icon(Icons.AutoMirrored.Filled.ReadMore, null)
-                            }
-                        }
-                    )
-                }
-            }
         }
-    })
+    ) { index ->
+        if (index == 0) {
+            template = ""
+            return@SettingsChooseWidget
+        }
+
+        template = profileTemplates[index]
+
+        val templateInfo = uiState.templateList.firstOrNull { it.id == template }
+            ?: return@SettingsChooseWidget
+
+        onProfileChange(
+            profile.copy(
+                rootTemplate = template,
+                rootUseDefault = false,
+                uid = templateInfo.uid,
+                gid = templateInfo.gid,
+                groups = templateInfo.groups,
+                capabilities = templateInfo.capabilities,
+                context = templateInfo.context,
+                rules = templateInfo.rules.joinToString("\n"),
+                namespace = templateInfo.namespace,
+            )
+        )
+    }
 }

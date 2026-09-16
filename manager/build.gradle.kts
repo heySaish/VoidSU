@@ -8,6 +8,8 @@ plugins {
     alias(libs.plugins.agp.lib) apply false
     alias(libs.plugins.kotlin) apply false
     alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.aboutLibraries) apply false
     alias(libs.plugins.lsplugin.cmaker)
 }
 

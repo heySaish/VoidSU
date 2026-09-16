@@ -9,31 +9,50 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.noties.markwon.Markwon
 import io.noties.markwon.utils.NoCopySpannableFactory
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.consumeAsFlow
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.parcelize.Parcelize
 import kotlin.coroutines.resume
 
@@ -43,6 +62,7 @@ interface ConfirmDialogVisuals : Parcelable {
     val title: String
     val content: String
     val isMarkdown: Boolean
+    val isHtml: Boolean
     val confirm: String?
     val dismiss: String?
 }
@@ -52,11 +72,17 @@ private data class ConfirmDialogVisualsImpl(
     override val title: String,
     override val content: String,
     override val isMarkdown: Boolean,
+    override val isHtml: Boolean,
     override val confirm: String?,
     override val dismiss: String?,
 ) : ConfirmDialogVisuals {
     companion object {
-        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "", false, null, null)
+        val Empty: ConfirmDialogVisuals = ConfirmDialogVisualsImpl("", "",
+            isMarkdown = false,
+            isHtml = false,
+            confirm = null,
+            dismiss = null
+        )
     }
 }
 
@@ -84,14 +110,17 @@ interface ConfirmDialogHandle : DialogHandle {
         title: String,
         content: String,
         markdown: Boolean = false,
+        html: Boolean = false,
         confirm: String? = null,
         dismiss: String? = null
     )
 
     suspend fun awaitConfirm(
+
         title: String,
         content: String,
         markdown: Boolean = false,
+        html: Boolean = false,
         confirm: String? = null,
         dismiss: String? = null
     ): ConfirmResult
@@ -247,11 +276,12 @@ private class ConfirmDialogHandleImpl(
         title: String,
         content: String,
         markdown: Boolean,
+        html: Boolean,
         confirm: String?,
         dismiss: String?
     ) {
         coroutineScope.launch {
-            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
+            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, html, confirm, dismiss))
             show()
         }
     }
@@ -260,11 +290,12 @@ private class ConfirmDialogHandleImpl(
         title: String,
         content: String,
         markdown: Boolean,
+        html: Boolean,
         confirm: String?,
         dismiss: String?
     ): ConfirmResult {
         coroutineScope.launch {
-            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, confirm, dismiss))
+            updateVisuals(ConfirmDialogVisualsImpl(title, content, markdown, html,confirm, dismiss))
             show()
         }
         return awaitResult()
@@ -378,6 +409,7 @@ fun rememberCustomDialog(composable: @Composable (dismiss: () -> Unit) -> Unit):
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoadingDialog() {
     Dialog(
@@ -390,7 +422,7 @@ private fun LoadingDialog() {
             Box(
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         }
     }
@@ -403,17 +435,25 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
             dismiss()
         },
         title = {
-            Text(
-                text = visuals.title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text(text = visuals.title)
         },
         text = {
-            if (visuals.isMarkdown) {
-                MarkdownContent(content = visuals.content)
-            } else {
-                Text(text = visuals.content)
+            LazyColumn(
+                modifier = Modifier
+                    .heightIn(max = 325.dp)
+            ) {
+                item {
+                    if (visuals.isMarkdown) {
+                        MarkdownContent(content = visuals.content)
+                    } else if (visuals.isHtml) {
+                        GithubMarkdown(
+                            content = visuals.content,
+                            backgroundColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                        )
+                    } else {
+                        Text(text = visuals.content)
+                    }
+                }
             }
         },
         confirmButton = {
@@ -433,26 +473,30 @@ private fun ConfirmDialog(visuals: ConfirmDialogVisuals, confirm: () -> Unit, di
 private fun MarkdownContent(content: String) {
     val contentColor = LocalContentColor.current
 
-    AndroidView(
-        factory = { context ->
-            TextView(context).apply {
-                movementMethod = LinkMovementMethod.getInstance()
-                setSpannableFactory(NoCopySpannableFactory.getInstance())
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
-                }
-                hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-        },
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight(),
-        update = {
-            Markwon.create(it.context).setMarkdown(it, content)
-            it.setTextColor(contentColor.toArgb())
-        }
-    )
+            .padding(12.dp)
+    ) {
+        AndroidView(
+            factory = { context ->
+                TextView(context).apply {
+                    movementMethod = LinkMovementMethod.getInstance()
+                    setSpannableFactory(NoCopySpannableFactory.getInstance())
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        breakStrategy = LineBreaker.BREAK_STRATEGY_SIMPLE
+                    }
+                    hyphenationFrequency = Layout.HYPHENATION_FREQUENCY_NONE
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                }
+            },
+            update = {
+                Markwon.create(it.context).setMarkdown(it, content)
+                it.setTextColor(contentColor.toArgb())
+            }
+        )
+    }
 }

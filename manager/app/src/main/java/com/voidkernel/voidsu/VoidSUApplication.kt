@@ -1,23 +1,25 @@
 package com.voidkernel.voidsu
 
 import android.app.Application
+import android.os.Build
 import android.system.Os
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import coil.Coil
 import coil.ImageLoader
+import com.voidkernel.voidsu.di.appModules
+import com.voidkernel.voidsu.domain.usecase.InitializeApplicationUseCase
 import com.voidkernel.voidsu.ui.util.createRootShellBuilder
-import com.voidkernel.voidsu.ui.viewmodel.ModuleViewModel
-import com.voidkernel.voidsu.ui.viewmodel.SuperUserViewModel
 import com.topjohnwu.superuser.Shell
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import me.zhanghai.android.appiconloader.coil.AppIconFetcher
 import me.zhanghai.android.appiconloader.coil.AppIconKeyer
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.startKoin
 import java.io.File
 import java.util.*
 
@@ -31,6 +33,14 @@ class VoidSUApplication : Application(), ViewModelStoreOwner {
     override fun onCreate() {
         super.onCreate()
         ksuApp = this
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val processName = getProcessName()
+            if (processName.endsWith("MagicaService")) {
+                return
+            }
+        }
+
         Shell.setDefaultBuilder(createRootShellBuilder(true))
         Shell.enableVerboseLogging = BuildConfig.DEBUG
 
@@ -62,10 +72,18 @@ class VoidSUApplication : Application(), ViewModelStoreOwner {
                             .header("Accept-Language", Locale.getDefault().toLanguageTag()).build()
                     )
                 }.build()
+
+        val koin = startKoin {
+            androidLogger()
+            androidContext(this@VoidSUApplication)
+            modules(appModules)
+        }.koin
+        runBlocking(Dispatchers.IO) {
+            koin.get<InitializeApplicationUseCase>()()
+        }
     }
 
     override val viewModelStore: ViewModelStore
         get() = appViewModelStore
-
-
 }
+

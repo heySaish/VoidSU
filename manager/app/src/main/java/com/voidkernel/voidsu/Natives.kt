@@ -2,31 +2,26 @@ package com.voidkernel.voidsu
 
 import android.os.Parcelable
 import androidx.annotation.Keep
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import kotlinx.parcelize.Parcelize
 
 /**
- * @author weishu
- * @date 2022/12/8.
+ * Native bridge for VoidSU with ReSukiSU UI support
  */
 object Natives {
-    // minimal supported kernel version
-    // 10915: allowlist breaking change, add app profile
-    // 10931: app profile struct add 'version' field
-    // 10946: add capabilities
-    // 10977: change groups_count and groups to avoid overflow write
-    // 11071: Fix the issue of failing to set a custom SELinux type.
-    // 12797: zygisk query and get manager uid.
-    // 32310: new get_allow_list ioctl
-    // 33070: SET_SEPOLICY ioctl
-    // 33075: add set_init_pgrp ioctl
-    // 33110: bump app profile version, migrate selinux domain
     const val MINIMAL_SUPPORTED_KERNEL = 33110
 
     const val KERNEL_SU_DOMAIN = "u:r:ksu:s0"
 
     const val ROOT_UID = 0
     const val ROOT_GID = 0
+
+    const val ALLOWLIST_RESTORE_SUCCESS = 0
+    const val ALLOWLIST_RESTORE_INVALID_FILE = 1
+    const val ALLOWLIST_RESTORE_UNSUPPORTED_VERSION = 2
+    const val ALLOWLIST_RESTORE_IO_ERROR = 3
+    const val ALLOWLIST_RESTORE_PROFILE_ERROR = 4
 
     init {
         System.loadLibrary("kernelsu")
@@ -35,8 +30,6 @@ object Natives {
     val version: Int
         external get
 
-    // deprecated
-    // get the uid list of allowed su processes.
     val allowList: IntArray
         external get
 
@@ -46,82 +39,80 @@ object Natives {
     val isLkmMode: Boolean
         external get
 
+    val isLkmBundled: Boolean
+        get() = false
+
     val isLateLoadMode: Boolean
         external get
 
     val isManager: Boolean
         external get
 
+    val isPrBuild: Boolean
+        get() = false
+
+    fun getFullVersion(): String {
+        return try {
+            getVersionTag() ?: version.toString()
+        } catch (e: Throwable) {
+            version.toString()
+        }
+    }
+
+    enum class KernelPatchImplementation {
+        NONE, OFFICIAL, KPATCH_NEXT, SUKISU
+    }
+
+    fun getKernelPatchImplementation(): KernelPatchImplementation = KernelPatchImplementation.NONE
+
     external fun uidShouldUmount(uid: Int): Boolean
 
-    /**
-     * Get the UID of the current root manager.
-     * @return manager UID, or 0 if unavailable.
-     */
     external fun getManagerAppid(): Int
 
-    /**
-     * Get a string indicating the SU hook mode enabled in kernel.
-     * The return values are:
-     * - "Manual": Manual hooks was enabled.
-     * - "Kprobes": Kprobes hooks was enabled (CONFIG_KSU_KPROBES_HOOK).
-     *
-     * @return return hook mode, or null if unavailable.
-     */
     external fun getHookMode(): String?
-    
-    /**
-     * Get the version tag from the kernel.
-     * @return version tag, or null if unavailable.
-     */
+
+    fun getHookType(): String = getHookMode() ?: "Kprobes"
+
     external fun getVersionTag(): String?
 
-    /**
-     * Check if Zygisk injection is enabled in the environment.
-     */
     external fun isZygiskEnabled(): Boolean
 
-    /**
-     * Get the profile of the given package.
-     * @param key usually the package name
-     * @return return null if failed.
-     */
     external fun getAppProfile(key: String?, uid: Int): Profile
     external fun setAppProfile(profile: Profile?): Boolean
 
-    /**
-     * `su` compat mode can be disabled temporarily.
-     *  0: disabled
-     *  1: enabled
-     *  negative : error
-     */
+    fun restoreAllowlistFromFd(fd: Int, failedUid: IntArray): Int = ALLOWLIST_RESTORE_UNSUPPORTED_VERSION
+
     external fun isSuEnabled(): Boolean
     external fun setSuEnabled(enabled: Boolean): Boolean
 
-    /**
-     * Kernel module umount can be disabled temporarily.
-     *  0: disabled
-     *  1: enabled
-     *  negative : error
-     */
+    fun isSuLogEnabled(): Boolean = false
+    fun setSuLogEnabled(enabled: Boolean): Boolean = false
+
     external fun isKernelUmountEnabled(): Boolean
     external fun setKernelUmountEnabled(enabled: Boolean): Boolean
 
-    /**
-     * Get the user name for the uid.
-     */
+    fun isSelinuxHideEnabled(): Boolean = false
+    fun setSelinuxHideEnabled(enabled: Boolean): Int = -1
+
+    fun getDynamicManager(): DynamicManagerConfig? = null
+    fun getManagersList(): ManagersList? = null
+
     external fun getUserName(uid: Int): String?
 
-    /**
-     * Avc spoof can be enabled/disabled.
-     *  0: disabled
-     *  1: enabled
-     *  negative : error
-     */
     external fun isAvcSpoofEnabled(): Boolean
     external fun setAvcSpoofEnabled(enabled: Boolean): Boolean
 
     external fun getSuperuserCount(): Int
+
+    val kernelUAPIVersion: Int
+        get() = 1
+
+    val managerUAPIVersion: Int
+        get() = 1
+
+    fun isFullFeatured(): Boolean {
+        return try { isManager } catch (e: Throwable) { true }
+    }
 
     private const val NON_ROOT_DEFAULT_PROFILE_KEY = "$"
     private const val NOBODY_UID = 9999
@@ -152,17 +143,36 @@ object Natives {
     @Immutable
     @Parcelize
     @Keep
+    data class DynamicManagerConfig(
+        val size: Int = 0,
+        val hash: String = ""
+    ) : Parcelable {
+        fun isValid(): Boolean = size > 0 && hash.length == 64
+    }
+
+    @Immutable
+    @Parcelize
+    @Keep
+    data class ManagersList(
+        val count: Int = 0,
+        val managers: List<ManagerInfo> = emptyList()
+    ) : Parcelable
+
+    @Immutable
+    @Parcelize
+    @Keep
+    data class ManagerInfo(
+        val uid: Int = 0,
+        val signatureIndex: Int = 0
+    ) : Parcelable
+
+    @Immutable
+    @Parcelize
+    @Keep
     data class Profile(
-        // and there is a default profile for root and non-root
         val name: String,
-        // current uid for the package, this is convivent for kernel to check
-        // if the package name doesn't match uid, then it should be invalidated.
         val currentUid: Int = 0,
-
-        // if this is true, kernel will grant root permission to this package
         val allowSu: Boolean = false,
-
-        // these are used for root profile
         val rootUseDefault: Boolean = true,
         val rootTemplate: String? = null,
         val uid: Int = ROOT_UID,
@@ -171,12 +181,19 @@ object Natives {
         val capabilities: List<Int> = mutableListOf(),
         val context: String = KERNEL_SU_DOMAIN,
         val namespace: Int = Namespace.INHERITED.ordinal,
-
         val nonRootUseDefault: Boolean = true,
         val umountModules: Boolean = true,
-        var rules: String = "", // this field is save in ksud!!
+        var rules: String = "",
         val flags: Long = FLAG_KSU_NO_NEW_PRIVS,
     ) : Parcelable {
+        @Keep
+        enum class RootProfileFlag(val display: String, @param:StringRes val desc: Int) {
+            NO_NEW_PRIVS(
+                "NO_NEW_PRIVS",
+                R.string.profile_flags_desc_no_new_privs
+            )
+        }
+
         enum class Namespace {
             INHERITED,
             GLOBAL,
@@ -188,3 +205,9 @@ object Natives {
 
     const val FLAG_KSU_NO_NEW_PRIVS = 1L
 }
+
+fun List<Natives.Profile.RootProfileFlag>.toRawFlags(): Long =
+    fold(0L) { acc, flag -> acc.or(1L.shl(flag.ordinal)) }
+
+fun Long.toRootProfileFlags(): List<Natives.Profile.RootProfileFlag> =
+    Natives.Profile.RootProfileFlag.entries.filter { 1L.shl(it.ordinal).and(this) != 0L }.toList()

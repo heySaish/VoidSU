@@ -1,252 +1,506 @@
 package com.voidkernel.voidsu.ui.screen
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Android
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.twotone.AccountCircle
+import androidx.compose.material.icons.twotone.Android
+import androidx.compose.material.icons.twotone.Edit
+import androidx.compose.material.icons.twotone.Security
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import com.voidkernel.voidsu.ui.LocalScrollState
-import com.voidkernel.voidsu.ui.rememberScrollConnection
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
-import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.generated.destinations.AppProfileTemplateScreenDestination
-import com.ramcosta.composedestinations.generated.destinations.TemplateEditorScreenDestination
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.voidkernel.voidsu.Natives
 import com.voidkernel.voidsu.R
-import com.voidkernel.voidsu.ui.component.SwitchItem
+import com.voidkernel.voidsu.domain.model.AppControlAction
+import com.voidkernel.voidsu.domain.model.AppProfile
+import com.voidkernel.voidsu.domain.model.InstalledApp
+import com.voidkernel.voidsu.domain.model.InstalledAppGroup
+import com.voidkernel.voidsu.ui.component.PackageIcon
+import com.voidkernel.voidsu.ui.component.SwipeableSnackbarHost
 import com.voidkernel.voidsu.ui.component.profile.AppProfileConfig
 import com.voidkernel.voidsu.ui.component.profile.RootProfileConfig
 import com.voidkernel.voidsu.ui.component.profile.TemplateConfig
-import com.voidkernel.voidsu.ui.util.*
-import com.voidkernel.voidsu.ui.viewmodel.SuperUserViewModel
-import com.voidkernel.voidsu.ui.viewmodel.getTemplateInfoById
+import com.voidkernel.voidsu.ui.component.settings.AppBackButton
+import com.voidkernel.voidsu.ui.component.settings.SegmentedColumn
+import com.voidkernel.voidsu.ui.component.settings.SettingsBaseWidget
+import com.voidkernel.voidsu.ui.component.settings.SettingsDropdownWidget
+import com.voidkernel.voidsu.ui.component.settings.SettingsJumpPageWidget
+import com.voidkernel.voidsu.ui.component.settings.SettingsSwitchWidget
+import com.voidkernel.voidsu.ui.component.settings.lazySegmentColumn
+import com.voidkernel.voidsu.ui.navigation.LocalNavigator
+import com.voidkernel.voidsu.ui.navigation.Route
+import com.voidkernel.voidsu.ui.theme.CardConfig
+import com.voidkernel.voidsu.ui.theme.ThemeConfig
+import com.voidkernel.voidsu.ui.theme.blurEffect
+import com.voidkernel.voidsu.ui.theme.blurSource
+import com.voidkernel.voidsu.ui.theme.renderBackgroundBlur
+import com.voidkernel.voidsu.ui.util.ActivityResumeEffect
+import com.voidkernel.voidsu.ui.util.LocalSnackbarHost
+import com.voidkernel.voidsu.ui.util.adaptiveScaffoldWindowInsets
+import com.voidkernel.voidsu.ui.util.showReplacingSnackbar
+import com.voidkernel.voidsu.ui.viewmodel.AppProfileUiAction
+import com.voidkernel.voidsu.ui.viewmodel.AppProfileUiEvent
+import com.voidkernel.voidsu.ui.viewmodel.AppProfileViewModel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * @author weishu
  * @date 2023/5/16.
  */
+
 @OptIn(ExperimentalMaterial3Api::class)
-@Destination<RootGraph>
 @Composable
 fun AppProfileScreen(
-    navigator: DestinationsNavigator,
-    appInfo: SuperUserViewModel.AppInfo,
+    uid: Int,
+    packageName: String,
 ) {
-    val context = LocalContext.current
+    val cardConfig: CardConfig = koinInject()
+    val navigator = LocalNavigator.current
     val snackBarHost = LocalSnackbarHost.current
-    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    // Bottom bar scroll tracking
-    val bottomBarScrollState = LocalScrollState.current
-    val bottomBarScrollConnection = if (bottomBarScrollState != null) {
-        rememberScrollConnection(
-            isScrollingDown = bottomBarScrollState.isScrollingDown,
-            scrollOffset = bottomBarScrollState.scrollOffset,
-            previousScrollOffset = bottomBarScrollState.previousScrollOffset,
-            threshold = 30f
-        )
-    } else null
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scope = rememberCoroutineScope()
-    val viewModel: SuperUserViewModel = viewModel()
-    val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(appInfo.label)
-    val failToUpdateSepolicy = stringResource(R.string.failed_to_update_sepolicy).format(appInfo.label)
-    val suNotAllowed = stringResource(R.string.su_not_allowed).format(appInfo.label)
+    val viewModel =
+        koinViewModel<AppProfileViewModel>(parameters = { parametersOf(uid, packageName) })
+    val uiState by viewModel.state.collectAsStateWithLifecycle()
+    val appGroup = uiState.appGroup
+    val appLabel = appGroup?.mainApp?.label ?: packageName
+    val isSpecial = appGroup?.isWebViewZygote == true
+    val failToUpdateAppProfile = stringResource(R.string.failed_to_update_app_profile).format(
+        appLabel
+    )
+    val failToUpdateSepolicy =
+        stringResource(R.string.failed_to_update_sepolicy).format(appLabel)
+    val suNotAllowed = stringResource(R.string.su_not_allowed).format(appLabel)
 
-    val packageName = appInfo.packageName
-    val initialProfile = Natives.getAppProfile(packageName, appInfo.uid)
-    if (initialProfile.allowSu) {
-        initialProfile.rules = getSepolicy(packageName)
-    }
-    var profile by rememberSaveable {
-        mutableStateOf(initialProfile)
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is AppProfileUiEvent.Error -> snackBarHost.showReplacingSnackbar(
+                    failToUpdateAppProfile
+                )
+
+                AppProfileUiEvent.SepolicyUpdateFailed ->
+                    snackBarHost.showReplacingSnackbar(failToUpdateSepolicy)
+
+                AppProfileUiEvent.Saved -> Unit
+            }
+        }
     }
 
-    val scrollState = LocalScrollState.current
-    val isNavBarHidden = scrollState?.isScrollingDown?.value ?: false
-    val navBarPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + if (isNavBarHidden) 0.dp else 112.dp
+    ActivityResumeEffect(packageName, uid) {
+        viewModel.dispatch(AppProfileUiAction.Load)
+    }
+
+    val profile = uiState.profile
+    if (appGroup == null || profile == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    val colorScheme = MaterialTheme.colorScheme
+    val cardColor = if (cardConfig.isCustomBackgroundEnabled) {
+        Color.Transparent
+    } else {
+        colorScheme.surfaceContainer
+    }
 
     Scaffold(
         topBar = {
-            TopBar(
-                onBack = dropUnlessResumed { navigator.popBackStack() },
-                scrollBehavior = scrollBehavior
+            LargeFlexibleTopAppBar(
+                modifier = Modifier.blurEffect(),
+                title = {
+                    Text(
+                        text = appGroup.mainApp.label,
+                    )
+                },
+                subtitle = {
+                    Text(
+                        text = appGroup.mainApp.displayIdentifier
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = cardColor,
+                    scrolledContainerColor = cardColor
+                ),
+                navigationIcon = {
+                    AppBackButton(
+                        onClick = dropUnlessResumed { navigator.pop() }
+                    )
+                },
+                windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp)),
+                scrollBehavior = scrollBehavior,
             )
         },
-        snackbarHost = { SnackbarHost(snackBarHost, modifier = Modifier.padding(bottom = navBarPadding)) },
-        contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+        snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) },
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentWindowInsets = adaptiveScaffoldWindowInsets()
     ) { paddingValues ->
         AppProfileInner(
             modifier = Modifier
-                .padding(paddingValues)
-                .let { modifier ->
-                    if (bottomBarScrollConnection != null) {
-                        modifier
-                            .nestedScroll(bottomBarScrollConnection)
-                            .nestedScroll(scrollBehavior.nestedScrollConnection)
-                    } else {
-                        modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
-                    }
-                }
-                .verticalScroll(rememberScrollState()),
-            packageName = appInfo.packageName,
-            appLabel = appInfo.label,
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .blurSource(),
+            topPadding = paddingValues.calculateTopPadding(),
+            bottomPadding = paddingValues.calculateBottomPadding(),
+            appGroup = appGroup,
+            isSpecial = isSpecial,
             appIcon = {
-                AsyncImage(
-                    model = ImageRequest.Builder(context).data(appInfo.packageInfo).crossfade(true).build(),
-                    contentDescription = appInfo.label,
+                PackageIcon(
+                    packageName = if (isSpecial) "android" else appGroup.mainApp.packageName,
+                    contentDescription = appGroup.mainApp.label,
                     modifier = Modifier
                         .padding(4.dp)
                         .width(48.dp)
-                        .height(48.dp)
+                        .height(48.dp),
                 )
             },
             profile = profile,
+            defaultUmountModules = uiState.defaultUmountModules,
+            sepolicyValid = uiState.sepolicyValid,
+            onValidateSepolicy = {
+                viewModel.dispatch(AppProfileUiAction.ValidateSepolicy(it))
+            },
             onViewTemplate = {
-                getTemplateInfoById(it)?.let { info ->
-                    navigator.navigate(TemplateEditorScreenDestination(info))
-                }
+                navigator.push(Route.TemplateEditor(it, true))
             },
             onManageTemplate = {
-                navigator.navigate(AppProfileTemplateScreenDestination())
+                navigator.push(Route.AppProfileTemplate)
             },
             onProfileChange = {
                 scope.launch {
                     if (it.allowSu) {
                         // sync with allowlist.c - forbid_system_uid
-                        if (appInfo.uid < 2000 && appInfo.uid != 1000) {
-                            snackBarHost.showSnackbar(suNotAllowed)
-                            return@launch
-                        }
-                        if (!it.rootUseDefault && it.rules.isNotEmpty() && !setSepolicy(profile.name, it.rules)) {
-                            snackBarHost.showSnackbar(failToUpdateSepolicy)
+                        if (uid < 2000 && uid != 1000) {
+                            snackBarHost.showReplacingSnackbar(suNotAllowed)
                             return@launch
                         }
                     }
-                    if (!Natives.setAppProfile(it)) {
-                        snackBarHost.showSnackbar(failToUpdateAppProfile.format(appInfo.uid))
-                    } else {
-                        profile = it
-                        viewModel.updateAppProfile(packageName, it)
-                    }
+                    viewModel.dispatch(AppProfileUiAction.Save(it))
                 }
             },
+            onControlApp = { viewModel.dispatch(AppProfileUiAction.ControlApp(it)) },
         )
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AppProfileInner(
     modifier: Modifier = Modifier,
-    packageName: String,
-    appLabel: String,
+    topPadding: Dp,
+    bottomPadding: Dp = 0.dp,
+    appGroup: InstalledAppGroup,
+    isSpecial: Boolean = false,
     appIcon: @Composable () -> Unit,
-    profile: Natives.Profile,
+    profile: AppProfile,
+    defaultUmountModules: Boolean = profile.umountModules,
+    sepolicyValid: Boolean = true,
+    onValidateSepolicy: (String) -> Unit = {},
     onViewTemplate: (id: String) -> Unit = {},
     onManageTemplate: () -> Unit = {},
-    onProfileChange: (Natives.Profile) -> Unit,
+    onControlApp: (AppControlAction) -> Unit,
+    onProfileChange: (AppProfile) -> Unit,
 ) {
-    val isRootGranted = profile.allowSu
+    val cardConfig: CardConfig = koinInject()
+    val themeConfig: ThemeConfig = koinInject()
+    val isRootGranted = !isSpecial && profile.allowSu
+    val affectedApplicationsTitle = stringResource(R.string.affected_applications)
 
-    Column(modifier = modifier) {
-        AppMenuBox(packageName) {
-            ListItem(
-                headlineContent = { Text(
-                    text = appLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                ) },
-                supportingContent = { Text(packageName) },
-                leadingContent = appIcon,
-            )
+    LazyColumn(modifier = modifier) {
+        item {
+            Spacer(modifier = Modifier.height(topPadding))
         }
 
-        SwitchItem(
-            icon = Icons.Filled.AdminPanelSettings,
-            title = stringResource(id = R.string.superuser),
-            checked = isRootGranted,
-            onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
-        )
-
-        Crossfade(targetState = isRootGranted, label = "") { current ->
-            Column(
-                modifier = Modifier.padding(bottom = 6.dp + 48.dp + 6.dp /* SnackBar height */)
-            ) {
-                if (current) {
-                    val initialMode = if (profile.rootUseDefault) {
-                        Mode.Default
-                    } else if (profile.rootTemplate != null) {
-                        Mode.Template
-                    } else {
-                        Mode.Custom
-                    }
-                    var mode by rememberSaveable {
-                        mutableStateOf(initialMode)
-                    }
-                    ProfileBox(mode, true) {
-                        // template mode shouldn't change profile here!
-                        if (it == Mode.Default || it == Mode.Custom) {
-                            onProfileChange(profile.copy(rootUseDefault = it == Mode.Default))
-                        }
-                        mode = it
-                    }
-                    Crossfade(targetState = mode, label = "") { currentMode ->
-                        if (currentMode == Mode.Template) {
-                            TemplateConfig(
-                                profile = profile,
-                                onViewTemplate = onViewTemplate,
-                                onManageTemplate = onManageTemplate,
-                                onProfileChange = onProfileChange
-                            )
-                        } else if (mode == Mode.Custom) {
-                            RootProfileConfig(
-                                fixedName = true,
-                                profile = profile,
-                                onProfileChange = onProfileChange
-                            )
-                        }
-                    }
-                } else {
-                    val mode = if (profile.nonRootUseDefault) Mode.Default else Mode.Custom
-                    ProfileBox(mode, false) {
-                        onProfileChange(profile.copy(nonRootUseDefault = (it == Mode.Default)))
-                    }
-                    Crossfade(targetState = mode, label = "") { currentMode ->
-                        val modifyEnabled = currentMode == Mode.Custom
-                        AppProfileConfig(
-                            fixedName = true,
-                            profile = profile,
-                            enabled = modifyEnabled,
-                            onProfileChange = onProfileChange
-                        )
+        item {
+            if (isSpecial) {
+                SettingsBaseWidget(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    title = appGroup.mainApp.label,
+                    description = appGroup.mainApp.displayIdentifier,
+                    iconPlaceholder = false,
+                    leadingContent = {
+                        appIcon()
+                    },
+                )
+            } else {
+                SettingsDropdownWidget(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    title = appGroup.mainApp.label,
+                    description = appGroup.mainApp.displayIdentifier,
+                    iconPlaceholder = false,
+                    leadingContent = {
+                        appIcon()
+                    },
+                    choice = -1,
+                    data = listOf(
+                        stringResource(id = R.string.launch_app),
+                        stringResource(id = R.string.force_stop_app),
+                        stringResource(id = R.string.restart_app)
+                    )
+                ) { choice ->
+                    when (choice) {
+                        0 -> onControlApp(AppControlAction.LAUNCH)
+                        1 -> onControlApp(AppControlAction.FORCE_STOP)
+                        2 -> onControlApp(AppControlAction.RESTART)
+                        else -> throw IllegalStateException("Illegal choice: $choice")
                     }
                 }
             }
+        }
+
+        if (!isSpecial) {
+            item {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceBright.copy(
+                        alpha = cardConfig.cardAlpha
+                    ),
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                )
+                {
+                    SettingsSwitchWidget(
+                        icon = Icons.TwoTone.Security,
+                        title = stringResource(id = R.string.superuser),
+                        checked = isRootGranted,
+                        onCheckedChange = { onProfileChange(profile.copy(allowSu = it)) },
+                    )
+                }
+            }
+        }
+
+        item {
+            Crossfade(
+                targetState = isRootGranted,
+                label = "RootAccess"
+            )
+            { current ->
+                Column {
+                    if (current) {
+                        val initialMode = if (profile.rootUseDefault) {
+                            Mode.Default
+                        } else if (profile.rootTemplate != null) {
+                            Mode.Template
+                        } else {
+                            Mode.Custom
+                        }
+                        var mode by rememberSaveable {
+                            mutableStateOf(initialMode)
+                        }
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .renderBackgroundBlur(MaterialTheme.colorScheme.surfaceBright),
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (themeConfig.isEnableBlurExp) Color.Transparent else {
+                                MaterialTheme.colorScheme.surfaceBright.copy(
+                                    alpha = cardConfig.cardAlpha
+                                )
+                            },
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            ProfileBox(mode, true) {
+                                // template mode shouldn't change profile here!
+                                if (it == Mode.Default || it == Mode.Custom) {
+                                    onProfileChange(
+                                        profile.copy(
+                                            rootUseDefault = it == Mode.Default,
+                                            rootTemplate = null
+                                        )
+                                    )
+                                }
+                                mode = it
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = mode != Mode.Default,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Crossfade(
+                                targetState = mode,
+                                label = "ProfileMode"
+                            ) { currentMode ->
+                                when (currentMode) {
+                                    Mode.Template -> {
+                                        SegmentedColumn {
+                                            item {
+                                                TemplateConfig(
+                                                    profile = profile,
+                                                    onViewTemplate = onViewTemplate,
+                                                    onProfileChange = onProfileChange
+                                                )
+                                            }
+
+                                            item {
+                                                SettingsJumpPageWidget(
+                                                    icon = Icons.TwoTone.Edit,
+                                                    title = stringResource(R.string.manage_app_profile),
+                                                    description = stringResource(R.string.settings_profile_template_summary),
+                                                    onClick = {
+                                                        onManageTemplate()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Mode.Custom -> {
+                                        RootProfileConfig(
+                                            profile = profile,
+                                            sepolicyValid = sepolicyValid,
+                                            onValidateSepolicy = onValidateSepolicy,
+                                            onProfileChange = onProfileChange
+                                        )
+                                    }
+
+                                    else -> {}
+                                }
+                            }
+                        }
+                    } else {
+                        val mode = if (profile.nonRootUseDefault) Mode.Default else Mode.Custom
+
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                                .padding(top = 8.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .renderBackgroundBlur(MaterialTheme.colorScheme.surfaceBright),
+                            shape = RoundedCornerShape(16.dp),
+                            color = if (themeConfig.isEnableBlurExp) Color.Transparent else {
+                                MaterialTheme.colorScheme.surfaceBright.copy(
+                                    alpha = cardConfig.cardAlpha
+                                )
+                            },
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ) {
+                            ProfileBox(mode, false) {
+                                onProfileChange(profile.copy(nonRootUseDefault = (it == Mode.Default)))
+                            }
+                        }
+
+                        AnimatedVisibility(
+                            visible = mode == Mode.Custom,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp)
+                                    .padding(top = 8.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceBright.copy(
+                                    alpha = cardConfig.cardAlpha
+                                ),
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                            ) {
+                                AppProfileConfig(
+                                    enabled = mode == Mode.Custom,
+                                    profile = profile,
+                                    defaultUmountModules = defaultUmountModules,
+                                    onProfileChange = onProfileChange
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (appGroup.apps.size > 1) {
+            lazySegmentColumn(
+                items = appGroup.apps,
+                title = affectedApplicationsTitle,
+                key = { _, app -> app.packageName },
+            ) { _, app ->
+                SettingsBaseWidget(
+                    title = app.label,
+                    description = app.packageName,
+                    enabled = false,
+                    iconPlaceholder = false,
+                    leadingContent = {
+                        PackageIcon(
+                            packageName = app.packageName,
+                            contentDescription = app.label,
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .width(48.dp)
+                                .height(48.dp),
+                        )
+                    },
+                ) {}
+            }
+        }
+
+        item {
+            Spacer(
+                modifier = Modifier.height(
+                    bottomPadding + 6.dp + 48.dp + 6.dp /* SnackBar height */
+                )
+            )
         }
     }
 }
@@ -258,141 +512,96 @@ private enum class Mode(@param:StringRes private val res: Int) {
         @Composable get() = stringResource(res)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TopBar(
-    onBack: () -> Unit,
-    scrollBehavior: TopAppBarScrollBehavior? = null
-) {
-    TopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.profile),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-            )
-        },
-        navigationIcon = {
-            IconButton(
-                onClick = onBack
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
-        },
-        windowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        scrollBehavior = scrollBehavior
-    )
-}
-
 @Composable
 private fun ProfileBox(
     mode: Mode,
     hasTemplate: Boolean,
     onModeChange: (Mode) -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(
-            text = stringResource(R.string.profile),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        ) },
-        supportingContent = { Text(mode.text) },
-        leadingContent = { Icon(Icons.Filled.AccountCircle, null) },
-    )
-    HorizontalDivider(thickness = Dp.Hairline)
-    ListItem(headlineContent = {
+    Column {
+        SettingsBaseWidget(
+            icon = Icons.TwoTone.AccountCircle,
+            iconColor = MaterialTheme.colorScheme.onSurface,
+            title = stringResource(R.string.profile),
+            description = mode.text,
+            isOnBackground = false,
+            containerColor = Color.Transparent,
+        )
+
         Row(
-            modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        )
+        {
             FilterChip(
                 selected = mode == Mode.Default,
-                label = { Text(stringResource(R.string.profile_default)) },
                 onClick = { onModeChange(Mode.Default) },
+                label = {
+                    Text(
+                        text = stringResource(R.string.profile_default),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                shape = MaterialTheme.shapes.medium,
             )
+
             if (hasTemplate) {
                 FilterChip(
                     selected = mode == Mode.Template,
-                    label = { Text(stringResource(R.string.profile_template)) },
                     onClick = { onModeChange(Mode.Template) },
+                    label = {
+                        Text(
+                            text = stringResource(R.string.profile_template),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    shape = MaterialTheme.shapes.medium,
                 )
             }
+
             FilterChip(
                 selected = mode == Mode.Custom,
-                label = { Text(stringResource(R.string.profile_custom)) },
                 onClick = { onModeChange(Mode.Custom) },
-            )
-        }
-    })
-}
-
-@Composable
-private fun AppMenuBox(packageName: String, content: @Composable () -> Unit) {
-
-    var expanded by remember { mutableStateOf(false) }
-    var touchPoint: Offset by remember { mutableStateOf(Offset.Zero) }
-    val density = LocalDensity.current
-
-    BoxWithConstraints(
-        Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    touchPoint = it
-                    expanded = true
-                }
-            }
-    ) {
-
-        content()
-
-        val (offsetX, offsetY) = with(density) {
-            (touchPoint.x.toDp()) to (touchPoint.y.toDp())
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            offset = DpOffset(offsetX, -offsetY),
-            onDismissRequest = {
-                expanded = false
-            },
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(id = R.string.launch_app)) },
-                onClick = {
-                    expanded = false
-                    launchApp(packageName)
+                label = {
+                    Text(
+                        text = stringResource(R.string.profile_custom),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(id = R.string.force_stop_app)) },
-                onClick = {
-                    expanded = false
-                    forceStopApp(packageName)
-                },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(id = R.string.restart_app)) },
-                onClick = {
-                    expanded = false
-                    restartApp(packageName)
-                },
+                shape = MaterialTheme.shapes.medium,
             )
         }
     }
-
-
 }
 
 @Preview
 @Composable
 private fun AppProfilePreview() {
-    var profile by remember { mutableStateOf(Natives.Profile("")) }
-    AppProfileInner(
-        packageName = "icu.nullptr.test",
-        appLabel = "Test",
-        appIcon = { Icon(Icons.Filled.Android, null) },
-        profile = profile,
-        onProfileChange = {
-            profile = it
-        },
-    )
-}
+    val cardConfig: CardConfig = koinInject()
+    var profile by remember { mutableStateOf(AppProfile("")) }
 
+    Surface(
+        color = if (cardConfig.isCustomBackgroundEnabled) Color.Transparent else MaterialTheme.colorScheme.surfaceBright
+    ) {
+        AppProfileInner(
+            appGroup = InstalledAppGroup(
+                uid = 0,
+                primaryPackageName = "preview",
+                apps = listOf(InstalledApp("preview", "Preview", 0)),
+            ),
+            appIcon = {
+                Icon(
+                    imageVector = Icons.TwoTone.Android,
+                    contentDescription = null,
+                )
+            },
+            profile = profile,
+            topPadding = 0.dp,
+            onControlApp = {},
+            onProfileChange = {
+                profile = it
+            },
+        )
+    }
+}

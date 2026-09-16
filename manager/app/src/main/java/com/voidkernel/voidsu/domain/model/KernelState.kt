@@ -1,0 +1,41 @@
+package com.voidkernel.voidsu.domain.model
+
+import com.voidkernel.voidsu.KernelVersion
+import com.voidkernel.voidsu.Natives.KernelPatchImplementation
+
+data class ManagerRecord(
+    val uid: Int,
+    val signatureIndex: Int,
+)
+
+data class ManagerRuntimeInfo(
+    val managers: List<ManagerRecord> = emptyList(),
+    val dynamicSignatureEnabled: Boolean = false,
+)
+
+data class KernelStatus(
+    val isManager: Boolean = false,
+    val ksuVersion: Int? = null,
+    val managerUAPIVersion: Int = 1,
+    val kernelUAPIVersion: Int? = 1,
+    val ksuFullVersion: String? = null,
+    val lkmMode: Boolean? = null,
+    val kernelVersion: KernelVersion,
+    val isRootAvailable: Boolean = false,
+    val isFullFeatured: Boolean = false,
+    val isSELinuxPermissive: Boolean = false,
+    val isOfficialSignature: Boolean = true,
+    val kernelPatchImplementation: KernelPatchImplementation = KernelPatchImplementation.NONE,
+    val hookType: String = "",
+    val isSafeMode: Boolean = false,
+    val isLateLoadMode: Boolean = false,
+    val isPrBuild: Boolean = false,
+)
+
+data class KernelFeatureSettings(
+    val suEnabled: Boolean,
+    val kernelUmountEnabled: Boolean,
+    val suLogEnabled: Boolean,
+    val selinuxHideEnabled: Boolean,
+    val defaultUmountModules: Boolean,
+)

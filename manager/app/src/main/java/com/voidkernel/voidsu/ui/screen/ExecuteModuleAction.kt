@@ -1,171 +1,199 @@
 package com.voidkernel.voidsu.ui.screen
 
-import android.content.Context
-import android.os.Environment
+import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material.icons.twotone.Close
+import androidx.compose.material.icons.twotone.Save
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeFlexibleTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.dropUnlessResumed
-import com.ramcosta.composedestinations.annotation.Destination
-import com.ramcosta.composedestinations.annotation.RootGraph
-import com.ramcosta.composedestinations.navigation.DestinationsNavigator
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voidkernel.voidsu.R
 import com.voidkernel.voidsu.ui.component.KeyEventBlocker
+import com.voidkernel.voidsu.ui.component.SwipeableSnackbarHost
+import com.voidkernel.voidsu.ui.component.settings.AppBackButton
+import com.voidkernel.voidsu.ui.navigation.LocalNavigator
+import com.voidkernel.voidsu.ui.theme.CardConfig
+import com.voidkernel.voidsu.ui.theme.MonospaceFontFamily
+import com.voidkernel.voidsu.ui.theme.ThemeConfig
+import com.voidkernel.voidsu.ui.theme.blurEffect
+import com.voidkernel.voidsu.ui.theme.blurSource
 import com.voidkernel.voidsu.ui.util.LocalSnackbarHost
-import com.voidkernel.voidsu.ui.util.runModuleAction
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.*
+import com.voidkernel.voidsu.ui.util.adaptiveScaffoldWindowInsets
+import com.voidkernel.voidsu.ui.util.showReplacingSnackbar
+import com.voidkernel.voidsu.ui.viewmodel.ExecuteModuleActionUiAction
+import com.voidkernel.voidsu.ui.viewmodel.ExecuteModuleActionUiEvent
+import com.voidkernel.voidsu.ui.viewmodel.ExecuteModuleActionViewModel
+import kotlinx.coroutines.flow.collectLatest
+import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
+
+@OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
-@Destination<RootGraph>
-fun ExecuteModuleActionScreen(navigator: DestinationsNavigator, moduleId: String) {
-    var text by rememberSaveable { mutableStateOf("") }
-    var tempText: String
-    val logContent = rememberSaveable { StringBuilder() }
+fun ExecuteModuleActionScreen(moduleId: String) {
+    val viewModel = koinViewModel<ExecuteModuleActionViewModel>(
+        parameters = { parametersOf(moduleId) },
+    )
+    val moduleActionState by viewModel.state.collectAsStateWithLifecycle()
     val snackBarHost = LocalSnackbarHost.current
-    val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
-    var actionResult: Boolean
-    var isActionRunning by rememberSaveable { mutableStateOf(true) }
-
+    val state = rememberLazyListState()
     val context = LocalContext.current
-    // Read developer options from SharedPreferences
-    val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
-    val developerOptionsEnabled = prefs.getBoolean("enable_developer_options", false)
+    val activity = LocalActivity.current
+    val navigator = LocalNavigator.current
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    val view = LocalView.current
-    DisposableEffect(isActionRunning) {
-        view.keepScreenOn = isActionRunning
-        onDispose {
-            view.keepScreenOn = false
-        }
+    LaunchedEffect(Unit) {
+        scrollBehavior.state.heightOffset = scrollBehavior.state.heightOffsetLimit
     }
 
-    BackHandler(enabled = isActionRunning) {
+    BackHandler(enabled = moduleActionState.running) {
         // Disable back button if action is running
     }
 
-    LaunchedEffect(Unit) {
-        if (text.isNotEmpty()) {
-            return@LaunchedEffect
-        }
-        withContext(Dispatchers.IO) {
-            runModuleAction(
-                moduleId = moduleId,
-                onStdout = {
-                    tempText = "$it\n"
-                    if (tempText.startsWith("[H[J")) { // clear command
-                        text = tempText.substring(6)
-                    } else {
-                        text += tempText
+    val fromShortcut = remember(activity) {
+        val intent = activity?.intent
+        intent?.getStringExtra("shortcut_type") == "module_action"
+    }
+
+    LaunchedEffect(viewModel, fromShortcut) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is ExecuteModuleActionUiEvent.Completed -> {
+                    if (event.successful && fromShortcut) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.module_action_success),
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                        activity?.finishAndRemoveTask()
                     }
-                    logContent.append(it).append("\n")
-                },
-                onStderr = {
-                    logContent.append(it).append("\n")
                 }
-            ).let {
-                actionResult = it
+
+                is ExecuteModuleActionUiEvent.LogSaved -> {
+                    snackBarHost.showReplacingSnackbar("Log saved to ${event.path}")
+                }
+
+                is ExecuteModuleActionUiEvent.Error -> {
+                    snackBarHost.showReplacingSnackbar(event.message)
+                }
             }
         }
-        isActionRunning = false
     }
 
     Scaffold(
         topBar = {
             TopBar(
-                isActionRunning = isActionRunning,
-                onBack = dropUnlessResumed {
-                    navigator.popBackStack()
+                isActionRunning = moduleActionState.running,
+                onBack = {
+                    navigator.pop()
                 },
                 onSave = {
-                    if (!isActionRunning) {
-                        scope.launch {
-                            val format = SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault())
-                            val date = format.format(Date())
-                            val file = File(
-                                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                                "VoidSU_module_action_log_${date}.log"
-                            )
-                            file.writeText(logContent.toString())
-                            snackBarHost.showSnackbar("Log saved to ${file.absolutePath}")
-                        }
-                    }
-                }
+                    viewModel.dispatch(ExecuteModuleActionUiAction.SaveLog)
+                },
+                scrollBehavior = scrollBehavior,
             )
         },
         floatingActionButton = {
-            if (!isActionRunning) {
+            if (!moduleActionState.running) {
+                val navigator = LocalNavigator.current
                 ExtendedFloatingActionButton(
                     text = { Text(text = stringResource(R.string.close)) },
-                    icon = { Icon(Icons.Filled.Close, contentDescription = null) },
+                    icon = { Icon(Icons.TwoTone.Close, contentDescription = null) },
                     onClick = {
-                        navigator.popBackStack()
+                        navigator.pop()
                     }
                 )
             }
         },
-        contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = { SnackbarHost(snackBarHost) }
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentWindowInsets = adaptiveScaffoldWindowInsets(),
+        snackbarHost = { SwipeableSnackbarHost(hostState = snackBarHost) }
     ) { innerPadding ->
         KeyEventBlocker {
             it.key == Key.VolumeDown || it.key == Key.VolumeUp
         }
-        Column(
+        LaunchedEffect(moduleActionState.output) {
+            state.animateScrollToItem(2) // Spacer(bottom)
+        }
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize(1f)
-                .padding(innerPadding)
-                .verticalScroll(scrollState),
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .blurSource(),
         ) {
-            LaunchedEffect(text) {
-                scrollState.animateScrollTo(scrollState.maxValue)
+            item {
+                Spacer(modifier = Modifier.height(innerPadding.calculateTopPadding()))
             }
-            Text(
-                modifier = Modifier.padding(8.dp),
-                text = if (developerOptionsEnabled) logContent.toString() else text,
-                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                fontFamily = FontFamily.Monospace,
-                lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-            )
+            item {
+                Text(
+                    modifier = Modifier.padding(8.dp),
+                    text = moduleActionState.output,
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    fontFamily = MonospaceFontFamily(),
+                    lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                )
+            }
+            item {
+                Spacer(modifier = Modifier.height(innerPadding.calculateBottomPadding()))
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun TopBar(isActionRunning: Boolean, onBack: () -> Unit = {}, onSave: () -> Unit = {}) {
-    TopAppBar(
-        title = { Text(
-                text = stringResource(R.string.action),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-            ) },
+private fun TopBar(
+    isActionRunning: Boolean,
+    onBack: () -> Unit = {},
+    onSave: () -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior,
+) {
+    val themeConfig: ThemeConfig = koinInject()
+    val cardConfig: CardConfig = koinInject()
+    LargeFlexibleTopAppBar(
+        modifier = Modifier.blurEffect(
+        ),
+        title = { Text(stringResource(R.string.action)) },
+        scrollBehavior = scrollBehavior,
         navigationIcon = {
-            IconButton(
-                onClick = onBack,
-                enabled = !isActionRunning
-            ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null) }
+            AppBackButton(
+                onClick = onBack
+            )
         },
         actions = {
             IconButton(
@@ -173,10 +201,23 @@ private fun TopBar(isActionRunning: Boolean, onBack: () -> Unit = {}, onSave: ()
                 enabled = !isActionRunning
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Save,
+                    imageVector = Icons.TwoTone.Save,
                     contentDescription = stringResource(id = R.string.save_log),
                 )
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor =
+                if (themeConfig.isEnableBlur)
+                    Color.Transparent
+                else
+                    MaterialTheme.colorScheme.surfaceContainer.copy(cardConfig.cardAlpha),
+            scrolledContainerColor =
+                if (themeConfig.isEnableBlur)
+                    Color.Transparent
+                else
+                    MaterialTheme.colorScheme.surfaceContainer.copy(cardConfig.cardAlpha),
+        ),
+        windowInsets = TopAppBarDefaults.windowInsets.add(WindowInsets(left = 12.dp))
     )
 }

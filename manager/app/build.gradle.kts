@@ -7,8 +7,10 @@ plugins {
     alias(libs.plugins.agp.app)
     alias(libs.plugins.kotlin)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.apksign)
+    alias(libs.plugins.aboutLibraries)
     id("kotlin-parcelize")
 }
 
@@ -111,6 +113,13 @@ tasks.named("preBuild") {
 }
 
 dependencies {
+    implementation(platform(libs.koin.bom))
+    implementation(libs.koin.core)
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.compose.viewmodel)
+
+    implementation(libs.gson)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
 
@@ -120,6 +129,9 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.foundation)
+    implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.datastore.preferences)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -128,29 +140,36 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    implementation(libs.compose.destinations.core)
-    ksp(libs.compose.destinations.ksp)
+    implementation(libs.miuix.blur)
+    implementation(libs.miuix.nav)
+
+    implementation(libs.aboutlibraries.core)
+    implementation(libs.aboutlibraries.compose.m3)
 
     implementation(libs.com.github.topjohnwu.libsu.core)
     implementation(libs.com.github.topjohnwu.libsu.service)
     implementation(libs.com.github.topjohnwu.libsu.io)
 
+    implementation(libs.material.kolor)
+    implementation(libs.monet.compat)
+    implementation(libs.material.components)
+    implementation(libs.androidx.palette.ktx)
+    implementation(libs.capsule)
+
     implementation(libs.dev.rikka.rikkax.parcelablelist)
 
     implementation(libs.io.coil.kt.coil.compose)
+    implementation(libs.ucrop)
 
     implementation(libs.kotlinx.coroutines.core)
 
     implementation(libs.me.zhanghai.android.appiconloader.coil)
-
-    implementation(libs.sheet.compose.dialogs.core)
-    implementation(libs.sheet.compose.dialogs.list)
-    implementation(libs.sheet.compose.dialogs.input)
+    implementation(libs.org.lsposed.hiddenapibypass)
 
     implementation(libs.markdown)
     implementation(libs.androidx.webkit)
 
     implementation(libs.lsposed.cxx)
 
-    implementation(libs.mmrl.ui)
+    implementation(libs.accompanist.drawablepainter)
 }
