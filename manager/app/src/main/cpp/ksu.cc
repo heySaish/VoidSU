@@ -4,6 +4,7 @@
 
 #include <sys/prctl.h>
 #include <cstdint>
+#include <string.h>
 #include <cstring>
 #include <cstdio>
 #include <unistd.h>

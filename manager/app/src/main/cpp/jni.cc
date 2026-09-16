@@ -5,6 +5,8 @@
 #include <pwd.h>
 
 #include <android/log.h>
+#include <string.h>
+#include <math.h>
 #include <cstring>
 
 #include "ksu.h"
