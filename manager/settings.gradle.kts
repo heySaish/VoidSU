@@ -4,8 +4,10 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        gradlePluginPortal()
         google()
         mavenCentral()
+        maven("https://jitpack.io")
     }
 }
 
@@ -17,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "KernelSU-Next"
+rootProject.name = "VoidSU"
 include(":app")
