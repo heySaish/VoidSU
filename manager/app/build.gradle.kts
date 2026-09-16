@@ -1,6 +1,3 @@
-@file:Suppress("UnstableApiUsage")
-
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 import com.android.build.gradle.tasks.PackageAndroidArtifact
 
 plugins {
@@ -88,13 +85,6 @@ android {
         }
     }
 
-    applicationVariants.all {
-        outputs.forEach {
-            val output = it as BaseVariantOutputImpl
-            output.outputFileName = "VoidSU_${managerVersionName}_${managerVersionCode}-$name.apk"
-        }
-    }
-
     // https://stackoverflow.com/a/77745844
     tasks.withType<PackageAndroidArtifact> {
         doFirst { appMetadata.asFile.orNull?.writeText("") }
@@ -108,6 +98,12 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+}
+
+base {
+    archivesName.set(
+        "VoidSU_${managerVersionName}_${managerVersionCode}"
+    )
 }
 
 tasks.register<Copy>("mergeScripts") {
