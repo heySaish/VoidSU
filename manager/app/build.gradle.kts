@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.kotlin)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.ksp)
     alias(libs.plugins.lsplugin.apksign)
     alias(libs.plugins.aboutLibraries)
     id("kotlin-parcelize")
@@ -100,11 +99,6 @@ android {
             val output = it as BaseVariantOutputImpl
             output.outputFileName = "VoidSU_${managerVersionName}_${managerVersionCode}-$name.apk"
         }
-        kotlin.sourceSets {
-            getByName(name) {
-                kotlin.srcDir("build/generated/ksp/$name/kotlin")
-            }
-        }
     }
 
     // https://stackoverflow.com/a/77745844
@@ -120,10 +114,6 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
-}
-
-ksp {
-    arg("compose-destinations.defaultTransitions", "none")
 }
 
 tasks.register<Copy>("mergeScripts") {
