@@ -1,5 +1,7 @@
 package com.voidkernel.voidsu.ui.screen.main
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -708,7 +710,16 @@ private fun InfoCard(
     isSimpleMode: Boolean,
     showHomeCardIcons: Boolean,
 ) {
+    val context = LocalContext.current
     val managersList = systemInfo.managersList
+
+    val copyInfo = { title: String, text: String ->
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val content = if (text.isNotBlank()) "$title: $text" else title
+        val clip = ClipData.newPlainText(title, content)
+        clipboard.setPrimaryClip(clip)
+        Toast.makeText(context, content, Toast.LENGTH_SHORT).show()
+    }
 
     SegmentedColumn(
         title = stringResource(R.string.home_version_info),
@@ -716,31 +727,40 @@ private fun InfoCard(
         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
     ) {
         item {
+            val title = stringResource(R.string.home_device_model)
+            val desc = systemInfo.deviceModel
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Smartphone.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_device_model),
-                description = systemInfo.deviceModel,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item {
+            val title = stringResource(R.string.home_kernel)
+            val desc = systemInfo.kernelRelease
             SettingsBaseWidget(
                 icon = Icons.TwoTone.DeveloperBoard.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_kernel),
-                description = systemInfo.kernelRelease,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item(
             visible = !isSimpleMode
         ) {
+            val title = stringResource(R.string.home_android_version)
+            val desc = systemInfo.androidVersion
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Android.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_android_version),
-                description = systemInfo.androidVersion,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
@@ -748,31 +768,40 @@ private fun InfoCard(
         item(
             visible = systemStatus.isManager
         ) {
+            val title = stringResource(R.string.home_kernel_version)
+            val desc = systemStatus.ksuFullVersion.orEmpty()
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Memory.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_kernel_version),
-                description = systemStatus.ksuFullVersion.orEmpty(),
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item {
+            val title = stringResource(R.string.home_manager_version)
+            val desc = "${systemInfo.managerVersion.first} (${systemInfo.managerVersion.second}/${systemInfo.managerVersion.third})"
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Tag.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_manager_version),
-                description = "${systemInfo.managerVersion.first} (${systemInfo.managerVersion.second}/${systemInfo.managerVersion.third})",
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item(
             visible = !isSimpleMode && systemInfo.susfsEnabled && systemInfo.susfsVersion.isNotEmpty()
         ) {
+            val title = stringResource(R.string.home_susfs_version)
+            val desc = systemInfo.susfsVersion
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Settings.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_susfs_version),
-                description = systemInfo.susfsVersion,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
     }
@@ -783,15 +812,19 @@ private fun InfoCard(
         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp)
     ) {
         item {
+            val title = stringResource(R.string.home_selinux_status)
+            val desc = systemInfo.selinuxStatus
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Security.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_selinux_status),
-                description = systemInfo.selinuxStatus,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item {
+            val title = stringResource(R.string.home_seccomp_status)
             val seccompDisplay = when (systemInfo.seccompStatus) {
                 -1 -> stringResource(R.string.seccomp_status_not_supported)
                 0 -> stringResource(R.string.seccomp_status_disabled)
@@ -803,14 +836,16 @@ private fun InfoCard(
             SettingsBaseWidget(
                 icon = Icons.TwoTone.FilterList.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_seccomp_status),
+                title = title,
                 description = seccompDisplay,
+                onLongClick = { copyInfo(title, seccompDisplay) }
             )
         }
 
         item(
             visible = !isSimpleMode && managersList != null
         ) {
+            val title = stringResource(R.string.multi_manager_list)
             val signatureMap =
                 managersList?.managers.orEmpty().groupBy { it.signatureIndex }
             val managersText = buildString {
@@ -833,44 +868,56 @@ private fun InfoCard(
                 }
             }.trimEnd(' ', '|')
 
+            val desc = managersText.ifEmpty { stringResource(R.string.no_active_manager) }
+
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Group.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.multi_manager_list),
-                description = managersText.ifEmpty { stringResource(R.string.no_active_manager) },
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item(
             visible = !isSimpleMode && systemStatus.isFullFeatured
         ) {
+            val title = stringResource(R.string.home_hook_type)
+            val desc = systemStatus.hookType
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Tune.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_hook_type),
-                description = systemStatus.hookType,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item(
             visible = !isSimpleMode && systemInfo.zygiskImplement.isNotEmpty() && systemInfo.zygiskImplement != "None"
         ) {
+            val title = stringResource(R.string.home_zygisk_implement)
+            val desc = systemInfo.zygiskImplement
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Extension.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_zygisk_implement),
-                description = systemInfo.zygiskImplement,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
 
         item(
             visible = !isSimpleMode && systemInfo.metaModuleImplement.isNotEmpty() && systemInfo.metaModuleImplement != "None"
         ) {
+            val title = stringResource(R.string.home_meta_module_implement)
+            val desc = systemInfo.metaModuleImplement
             SettingsBaseWidget(
                 icon = Icons.TwoTone.Extension.takeIf { showHomeCardIcons },
                 iconPlaceholder = false,
-                title = stringResource(R.string.home_meta_module_implement),
-                description = systemInfo.metaModuleImplement,
+                title = title,
+                description = desc,
+                onLongClick = { copyInfo(title, desc) }
             )
         }
     }
