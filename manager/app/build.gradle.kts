@@ -14,8 +14,15 @@ plugins {
     id("kotlin-parcelize")
 }
 
-val managerVersionCode: Int by rootProject.extra
-val managerVersionName: String by rootProject.extra
+val androidCompileSdkVersion = rootProject.extra["androidCompileSdkVersion"] as Int
+val androidCompileNdkVersion = rootProject.extra["androidCompileNdkVersion"] as String
+val androidBuildToolsVersion = rootProject.extra["androidBuildToolsVersion"] as String
+val androidMinSdkVersion = rootProject.extra["androidMinSdkVersion"] as Int
+val androidTargetSdkVersion = rootProject.extra["androidTargetSdkVersion"] as Int
+val androidSourceCompatibility = rootProject.extra["androidSourceCompatibility"] as JavaVersion
+val androidTargetCompatibility = rootProject.extra["androidTargetCompatibility"] as JavaVersion
+val managerVersionCode = rootProject.extra["managerVersionCode"] as Int
+val managerVersionName = rootProject.extra["managerVersionName"] as String
 
 apksign {
     storeFileProperty = "KEYSTORE_FILE"
@@ -26,6 +33,26 @@ apksign {
 
 android {
     namespace = "com.voidkernel.voidsu"
+    compileSdk = androidCompileSdkVersion
+    ndkVersion = androidCompileNdkVersion
+    buildToolsVersion = androidBuildToolsVersion
+
+    defaultConfig {
+        applicationId = "com.voidkernel.voidsu"
+        minSdk = androidMinSdkVersion
+        targetSdk = androidTargetSdkVersion
+        versionCode = managerVersionCode
+        versionName = managerVersionName
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = androidSourceCompatibility
+        targetCompatibility = androidTargetCompatibility
+    }
 
     buildTypes {
         release {
