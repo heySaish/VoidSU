@@ -4,6 +4,7 @@ agp = "8.13.1"
 gson = "2.14.0"
 kotlin = "2.2.0"
 ksp = "2.2.0-2.0.2"
+navigation = "2.8.5"
 materialKolor = "5.0.1"
 monetCompat = "0.4.1"
 materialComponents = "1.14.0"
@@ -57,6 +58,7 @@ koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel" }
 
 accompanist-drawablepainter = { module = "com.google.accompanist:accompanist-drawablepainter", version.ref = "accompanist-drawablepainter" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity-compose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation" }
 
 androidx-compose-runtime-tracing = { module = "androidx.compose.runtime:runtime-tracing" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation" }
