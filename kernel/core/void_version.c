@@ -15,8 +15,22 @@ static ssize_t version_show(struct kobject *kobj, struct kobj_attribute *attr, c
     return sprintf(buf, "%s\n", VOID_KERNEL_VERSION);
 }
 
+static ssize_t banner_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+    return sprintf(buf,
+        "__     __    _     _   _  __                    _\n"
+        "\\ \\   / /__ (_) __| | | |/ /___ _ __ _ __   ___| |\n"
+        " \\ \\ / / _ \\| |/ _` | | ' // _ \\ '__| '_ \\ / _ \\ |\n"
+        "  \\ V / (_) | | (_| | | . \\  __/ |  | | | |  __/ |\n"
+        "   \\_/ \\___/|_|\\__,_| |_|\\_\\___|_|  |_| |_|\\___|_|\n"
+        "       --- Void Kernel by heySaish ---\n");
+}
+
 static struct kobj_attribute version_attribute =
     __ATTR(version, 0444, version_show, NULL);
+
+static struct kobj_attribute banner_attribute =
+    __ATTR(banner, 0444, banner_show, NULL);
 
 void void_version_init(void)
 {
@@ -29,7 +43,10 @@ void void_version_init(void)
     if (ret) {
         kobject_put(void_kobj);
         void_kobj = NULL;
+        return;
     }
+
+    sysfs_create_file(void_kobj, &banner_attribute.attr);
 }
 
 void void_version_exit(void)
