@@ -2,10 +2,14 @@ package com.voidkernel.voidsu.ui.screen
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.twotone.AdminPanelSettings
-import androidx.compose.material.icons.twotone.Extension
-import androidx.compose.material.icons.twotone.Home
-import androidx.compose.material.icons.twotone.Settings
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.AdminPanelSettings
+import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
@@ -25,29 +29,29 @@ enum class BottomBarDestination(
     Home(
         { bottomPadding -> HomePage(bottomPadding) },
         R.string.home,
-        Icons.TwoTone.Home,
-        Icons.TwoTone.Home,
+        Icons.Filled.Home,
+        Icons.Outlined.Home,
         false
     ),
     SuperUser(
         { bottomPadding -> SuperUserPage(bottomPadding) },
         R.string.superuser,
-        Icons.TwoTone.AdminPanelSettings,
-        Icons.TwoTone.AdminPanelSettings,
+        Icons.Filled.AdminPanelSettings,
+        Icons.Outlined.AdminPanelSettings,
         true
     ),
     Module(
         { bottomPadding -> ModulePage(bottomPadding) },
         R.string.module,
-        Icons.TwoTone.Extension,
-        Icons.TwoTone.Extension,
+        Icons.Filled.Extension,
+        Icons.Outlined.Extension,
         true
     ),
     Settings(
         { bottomPadding -> SettingsPage(bottomPadding) },
         R.string.settings,
-        Icons.TwoTone.Settings,
-        Icons.TwoTone.Settings,
+        Icons.Filled.Settings,
+        Icons.Outlined.Settings,
         false
     );
 
