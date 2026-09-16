@@ -42,8 +42,9 @@ android {
         prefab = true
     }
 
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    @Suppress("DEPRECATION")
+    kotlinOptions {
+        jvmTarget = "21"
     }
 
     packaging {
