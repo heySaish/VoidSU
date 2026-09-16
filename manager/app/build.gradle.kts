@@ -37,7 +37,8 @@ android {
         minSdk = androidMinSdkVersion
         targetSdk = androidTargetSdkVersion
         versionCode = managerVersionCode
-        versionName = managerVersionName
+        val isPrBuild = project.findProperty("IS_PR_BUILD")?.toString()?.toBoolean() ?: false
+        buildConfigField("boolean", "IS_PR_BUILD", isPrBuild.toString())
 
         ndk {
             abiFilters += listOf("arm64-v8a")

@@ -14,7 +14,7 @@ import com.topjohnwu.superuser.ipc.RootService
  * @author ShirkNeko
  * @date 2025/10/17.
  */
-import dev.rikka.rikkax.parcelablelist.ParcelableListSlice
+import rikka.parcelablelist.ParcelableListSlice
 
 class KsuService : RootService() {
 
