@@ -14,6 +14,8 @@ import com.topjohnwu.superuser.ipc.RootService
  * @author ShirkNeko
  * @date 2025/10/17.
  */
+import dev.rikka.rikkax.parcelablelist.ParcelableListSlice
+
 class KsuService : RootService() {
 
     private val TAG = "KsuService"
@@ -35,15 +37,12 @@ class KsuService : RootService() {
     }
 
     internal inner class Stub : IKsuInterface.Stub() {
-        override fun getPackageCount(): Int = synchronized(cacheLock) {
-            loadAllPackages().also { _all = it }.size
+        override fun getPackages(flags: Int): ParcelableListSlice<PackageInfo> {
+            return ParcelableListSlice(allPackages)
         }
 
-        override fun getPackages(start: Int, maxCount: Int): List<PackageInfo> {
-            val list = allPackages
-            val end = (start + maxCount).coerceAtMost(list.size)
-            return if (start >= list.size) emptyList()
-            else list.subList(start, end)
+        fun getPackageCount(): Int = synchronized(cacheLock) {
+            loadAllPackages().also { _all = it }.size
         }
     }
 

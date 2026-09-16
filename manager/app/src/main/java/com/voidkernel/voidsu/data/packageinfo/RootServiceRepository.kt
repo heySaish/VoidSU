@@ -35,16 +35,7 @@ class RootServiceRepository(
 
             withContext(Dispatchers.IO) {
                 val service = IKsuInterface.Stub.asInterface(binder)
-                val total = service.packageCount
-                buildList {
-                    var start = 0
-                    while (start < total) {
-                        val page = service.getPackages(start, 100)
-                        if (page.isEmpty()) break
-                        addAll(page)
-                        start += page.size
-                    }
-                }
+                service.getPackages(0).list
             }
         } catch (error: CancellationException) {
             throw error
