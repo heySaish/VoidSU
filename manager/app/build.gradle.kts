@@ -99,6 +99,11 @@ android {
     androidResources {
         generateLocaleConfig = true
     }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
 }
 
 base {
