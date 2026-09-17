@@ -137,49 +137,23 @@ fun AboutScreen() {
             }
 
             item {
-                WarningCard(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 8.dp, bottom = 12.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(
-                        alpha = cardConfig.cardAlpha
-                    ),
-                    message = AnnotatedString.fromHtml(
-                        htmlString = stringResource(
-                            id = R.string.about_anime_character_sticker
-                        ),
-                        linkStyles = TextLinkStyles(
-                            style = SpanStyle(
-                                color = MaterialTheme.colorScheme.primary,
-                                textDecoration = TextDecoration.Underline
-                            ),
-                            pressedStyle = SpanStyle(
-                                color = MaterialTheme.colorScheme.primary,
-                                background = MaterialTheme.colorScheme.secondaryContainer,
-                                textDecoration = TextDecoration.Underline
-                            )
-                        )
-                    ),
-                    icon = {
-                        Icon(
-                            imageVector = Icons.TwoTone.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                )
-            }
-
-            item {
                 SegmentedColumn(
                     title = stringResource(R.string.about)
                 ) {
                     item {
                         SettingsJumpPageWidget(
                             icon = Icons.TwoTone.Code,
-                            title = stringResource(R.string.get_source_code),
-                            description = stringResource(R.string.get_source_code_detail),
-                            onClick = { uriHandler.openUri("https://github.com/ReSukiSU/ReSukiSU") }
+                            title = stringResource(R.string.get_source_code_voidsu),
+                            description = stringResource(R.string.get_source_code_voidsu_detail),
+                            onClick = { uriHandler.openUri("https://github.com/heySaish/VoidSU") }
+                        )
+                    }
+                    item {
+                        SettingsJumpPageWidget(
+                            icon = Icons.TwoTone.Code,
+                            title = stringResource(R.string.get_source_code_voidkernel),
+                            description = stringResource(R.string.get_source_code_voidkernel_detail),
+                            onClick = { uriHandler.openUri("https://github.com/heySaish/Void-Kernel") }
                         )
                     }
                     item {
@@ -187,7 +161,7 @@ fun AboutScreen() {
                             icon = Icons.TwoTone.Group,
                             title = stringResource(R.string.join_telegram_group),
                             description = stringResource(R.string.join_telegram_group_detail),
-                            onClick = { uriHandler.openUri("https://t.me/ReSukiSU") }
+                            onClick = { uriHandler.openUri("https://t.me/VoidKernelOfficial") }
                         )
                     }
                     item {
