@@ -5,7 +5,7 @@
 <div align="center">
   <img src="/assets/kernelsu_next.png" width="96" alt="KernelSU Next Logo">
 
-  <h2>KernelSU Next</h2>
+  <h2>VoidSU</h2>
   <p><strong>A kernel-based root solution for Android devices.</strong></p>
 
   <p>
@@ -37,7 +37,7 @@
 
 ## ✅ Compatibility
 
-KernelSU Next supports Android kernels from **4.4 up to 6.6**.
+VoidSU supports Void Kernel only
 
 | Kernel version       | Support notes                                                           |
 |----------------------|-------------------------------------------------------------------------|
