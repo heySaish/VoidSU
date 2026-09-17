@@ -32,17 +32,9 @@ static struct kobj_attribute version_attribute =
 static struct kobj_attribute banner_attribute =
     __ATTR(banner, 0444, banner_show, NULL);
 
-extern struct kset *kernel_kset;
-
 void void_version_init(void)
 {
     int ret;
-
-    /* Skip creation if /sys/kernel/void_kernel is already created by core kernel */
-    if (kernel_kset && kset_find_obj(kernel_kset, "void_kernel")) {
-        pr_info("VoidSU: /sys/kernel/void_kernel already managed by core kernel\n");
-        return;
-    }
 
     void_kobj = kobject_create_and_add("void_kernel", kernel_kobj);
     if (!void_kobj)
