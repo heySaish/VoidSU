@@ -441,17 +441,6 @@ fun SettingsPage(bottomPadding: Dp) {
                         }
 
                         if (homeState.systemStatus.isFullFeatured) {
-                            item {
-                                SettingsJumpPageWidget(
-                                    icon = Icons.TwoTone.Security,
-                                    title = stringResource(R.string.dynamic_manager_title),
-                                    description = stringResource(R.string.dynamic_manager_settings_summary),
-                                    onClick = {
-                                        navigator.push(Route.DynamicManager)
-                                    }
-                                )
-                            }
-
                             item(visible = uiState.isKernelUmountEnabled) {
                                 SettingsJumpPageWidget(
                                     icon = Icons.TwoTone.FolderOff,
