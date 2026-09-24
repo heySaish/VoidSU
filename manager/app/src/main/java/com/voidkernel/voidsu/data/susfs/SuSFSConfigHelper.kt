@@ -109,21 +109,44 @@ class SuSFSConfigHelper(
     }
 
     suspend fun addSusPath(path: String): Boolean {
-        return executeConfigMutation(
+        val ok = executeConfigMutation(
             command = "sus_path add ${shellQuote(path)}",
             currentKernelCommands = listOf("add_sus_path ${shellQuote(path)}"),
         )
+        if (ok) {
+            val curr = cachedConfig ?: SuSFSConfig.createDefault()
+            val updated = curr.sus_path.filterTo(mutableSetOf()) { it.path != path }
+            updated.add(SusPathItem(path, false))
+            cachedConfig = curr.copy(sus_path = updated)
+        }
+        return ok
     }
 
     suspend fun addSusPathLoop(path: String): Boolean {
-        return executeConfigMutation(
+        val ok = executeConfigMutation(
             command = "sus_path add ${shellQuote(path)} --loop",
-            currentKernelCommands = listOf("add_sus_path_loop ${shellQuote(path)}"),
+            currentKernelCommands = listOf("add_sus_path ${shellQuote(path)}"),
         )
+        if (ok) {
+            val curr = cachedConfig ?: SuSFSConfig.createDefault()
+            val updated = curr.sus_path.filterTo(mutableSetOf()) { it.path != path }
+            updated.add(SusPathItem(path, true))
+            cachedConfig = curr.copy(sus_path = updated)
+        }
+        return ok
     }
 
     suspend fun removeSusPath(path: String): Boolean {
-        return executeConfigMutation("sus_path remove ${shellQuote(path)}")
+        val ok = executeConfigMutation(
+            command = "sus_path remove ${shellQuote(path)}",
+            currentKernelCommands = listOf("remove_sus_path ${shellQuote(path)}"),
+        )
+        if (ok) {
+            val curr = cachedConfig ?: SuSFSConfig.createDefault()
+            val updated = curr.sus_path.filterTo(mutableSetOf()) { it.path != path }
+            cachedConfig = curr.copy(sus_path = updated)
+        }
+        return ok
     }
 
     suspend fun addSusKstat(path: String): Boolean {
