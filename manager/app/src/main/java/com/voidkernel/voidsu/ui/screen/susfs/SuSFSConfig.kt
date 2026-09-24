@@ -123,6 +123,10 @@ fun SuSFSConfigScreen() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        requestRefresh()
+    }
+
     val handleConfigEnabledChange: (Boolean) -> Unit = { newValue ->
         coroutineScope.launch {
             if (awaitSuSFSBoolean(configHelper) { reply ->

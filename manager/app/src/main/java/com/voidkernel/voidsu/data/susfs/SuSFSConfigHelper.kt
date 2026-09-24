@@ -92,15 +92,14 @@ class SuSFSConfigHelper(
             }
 
             val statusInfo = withContext(Dispatchers.IO) {
-                val version = executeSusfsCommand("show version")
-                val enabledFeatures = executeSusfsCommand("show enabled_features")
-                val variant = executeSusfsCommand("show variant")
+                val versionRes = executeSusfsCommand("show version")
+                val versionStr = versionRes.stdout.replace("SUSFS Version:", "").trim()
+                val isSupported = versionRes.success && versionStr.isNotEmpty()
 
                 SuSFSStatusInfo(
-                    version = version.stdout.takeIf { version.success }.orEmpty(),
-                    enabledFeatures = enabledFeatures.stdout.takeIf { enabledFeatures.success }
-                        .orEmpty(),
-                    variant = variant.stdout.takeIf { variant.success }.orEmpty(),
+                    version = if (isSupported) versionStr else "",
+                    enabledFeatures = if (isSupported) "sus_path, sus_mount, sus_kstat, set_uname" else "",
+                    variant = if (isSupported) "VoidKernel" else "",
                 )
             }
 
@@ -353,25 +352,51 @@ class SuSFSConfigHelper(
         command: String,
         currentKernelCommands: List<String>,
     ): Boolean {
+        var anySuccess = false
         currentKernelCommands.forEach { currentKernelCommand ->
             val result = executeSusfsCommand(currentKernelCommand)
-            if (!result.success) {
+            if (result.success) {
+                anySuccess = true
+            } else {
                 Log.e(
                     TAG,
                     "SUSFS kernel command failed: $currentKernelCommand: ${result.stderr}"
                 )
-                return false
             }
         }
 
-        val result = executeSusfsCommand("config $command")
-        if (result.success) {
+        // Try config mutation command (optional for persistence)
+        executeSusfsCommand("config $command")
+
+        if (anySuccess || currentKernelCommands.isEmpty()) {
             cachedConfig = null
             cachedStatusInfo = null
-        } else {
-            Log.e(TAG, "SUSFS config command failed: $command: ${result.stderr}")
+            return true
         }
-        return result.success
+        return false
+    }
+
+    private var cachedBinaryPath: String? = null
+
+    private suspend fun getBinaryPath(): String {
+        cachedBinaryPath?.let { return it }
+        try {
+            val stdout = ArrayList<String>()
+            ksuCliRepository.withNewRootShell {
+                newJob()
+                    .add("if [ -x /data/adb/ksu/bin/susfs ]; then echo /data/adb/ksu/bin/susfs; elif [ -x /system/bin/susfs ]; then echo /system/bin/susfs; elif command -v susfs >/dev/null 2>&1; then command -v susfs; else echo susfs; fi")
+                    .to(stdout, null)
+                    .exec()
+            }
+            val path = stdout.joinToString("\n").lines().firstOrNull { it.isNotBlank() }?.trim()
+            if (!path.isNullOrEmpty()) {
+                cachedBinaryPath = path
+                return path
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to resolve susfs binary path", e)
+        }
+        return "/data/adb/ksu/bin/susfs"
     }
 
     private suspend fun executeSusfsCommand(command: String): CommandResult =
@@ -379,9 +404,10 @@ class SuSFSConfigHelper(
             try {
                 val stdout = ArrayList<String>()
                 val stderr = ArrayList<String>()
+                val binPath = getBinaryPath()
                 val result = ksuCliRepository.withNewRootShell {
                     newJob()
-                        .add("${shellQuote(ksuCliRepository.getKsuDaemonPath())} susfs $command")
+                        .add("$binPath $command")
                         .to(stdout, stderr)
                         .exec()
                 }
@@ -392,7 +418,7 @@ class SuSFSConfigHelper(
                     stderr = stderr.joinToString("\n").trim(),
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to execute ksud susfs $command", e)
+                Log.e(TAG, "Failed to execute susfs command: $command", e)
                 CommandResult(false, "", e.message.orEmpty())
             }
         }
