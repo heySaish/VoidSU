@@ -184,6 +184,8 @@ fun SuSFSConfigScreen() {
                 onRegisterRefresh = onRegisterRefresh,
             )
         },
+        /*
+        // Hidden until kernel patches are added for open_redirect and sus_map:
         SuSFSConfigSubpage(
             requirePersist = true,
             title = stringResource(R.string.susfs_tab_open_redirect),
@@ -204,6 +206,7 @@ fun SuSFSConfigScreen() {
                 onRegisterRefresh = onRegisterRefresh,
             )
         },
+        */
     )
     val defaultPage = subpages.indexOfFirst { !it.requirePersist }.coerceAtLeast(0)
     val pagerState = rememberPagerState(
