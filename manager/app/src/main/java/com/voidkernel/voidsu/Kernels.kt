@@ -81,3 +81,10 @@ fun getVoidKernelVersion(): String? {
         }
     }.getOrNull()
 }
+
+fun isVoidKernel(): Boolean {
+    val sysfsVersion = getVoidKernelVersion()
+    if (!sysfsVersion.isNullOrEmpty()) return true
+    val unameRelease = runCatching { Os.uname().release }.getOrDefault("")
+    return unameRelease.contains("voidkernel", ignoreCase = true)
+}

@@ -563,6 +563,25 @@ private fun StatusCard(
     }
 
     when {
+        !systemStatus.isVoidKernel -> {
+            SettingsBaseWidget(
+                icon = Icons.TwoTone.Error,
+                iconSize = 18.dp,
+                isError = true,
+                title = stringResource(R.string.home_non_voidkernel_title),
+                description = stringResource(R.string.home_non_voidkernel_reason),
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+                foreContent = {
+                    Spacer(Modifier.width(8.dp))
+                    LabelText(
+                        label = stringResource(R.string.home_non_voidkernel_label),
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                },
+                onClick = onClick
+            )
+        }
+
         systemStatus.ksuVersion != null -> {
             val workingModeText = when {
                 systemStatus.isSafeMode -> stringResource(id = R.string.safe_mode)

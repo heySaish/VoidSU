@@ -10,6 +10,7 @@ import com.voidkernel.voidsu.domain.model.KernelStatus
 import com.voidkernel.voidsu.domain.model.ManagerRecord
 import com.voidkernel.voidsu.domain.model.ManagerRuntimeInfo
 import com.voidkernel.voidsu.getKernelVersion
+import com.voidkernel.voidsu.isVoidKernel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,6 +20,7 @@ class KernelRepository(
 ) {
     suspend fun getStatus(): KernelStatus = withContext(Dispatchers.IO) {
         val kernelVersion = getKernelVersion()
+        val isVoidKernel = isVoidKernel()
         val isManager = runCatching { Natives.isManager }.getOrDefault(false)
         val ksuVersion = if (isManager) Natives.version else null
         val kernelUapi = if (isManager) Natives.kernelUAPIVersion else null
@@ -45,6 +47,7 @@ class KernelRepository(
             isSafeMode = runCatching { Natives.isSafeMode }.getOrDefault(false),
             isLateLoadMode = runCatching { Natives.isLateLoadMode }.getOrDefault(false),
             isPrBuild = runCatching { Natives.isPrBuild }.getOrDefault(false),
+            isVoidKernel = isVoidKernel,
         )
     }
 

@@ -37,6 +37,8 @@ class SuSFSRepository(
 
     suspend fun addSusPath(path: String) = helper.addSusPath(path)
     suspend fun addSusPathLoop(path: String) = helper.addSusPathLoop(path)
+    suspend fun setAutoHide(enabled: Boolean) = helper.setAutoHide(enabled)
+    suspend fun getAutoHideStatus() = helper.getAutoHideStatus()
     suspend fun removeSusPath(path: String) = helper.removeSusPath(path)
     suspend fun addSusKstat(path: String) = helper.addSusKstat(path)
     suspend fun addSusKstatFullClone(path: String) = helper.addSusKstatFullClone(path)

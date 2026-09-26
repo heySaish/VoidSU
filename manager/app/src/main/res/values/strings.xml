@@ -12,6 +12,9 @@
     <string name="home_working">Working</string>
     <string name="home_unsupported">Unsupported</string>
     <string name="home_unsupported_reason">No KernelSU driver detected on your kernel, wrong kernel?</string>
+    <string name="home_non_voidkernel_title">Non-VoidKernel Detected</string>
+    <string name="home_non_voidkernel_reason">VoidSU is tightly coupled with VoidKernel. Please flash VoidKernel for your device.</string>
+    <string name="home_non_voidkernel_label">NON-VOIDKERNEL</string>
     <string name="home_kernel">Kernel Version</string>
     <string name="home_susfs_version">SuSFS Version</string>
     <string name="home_manager_version">Manager Version</string>

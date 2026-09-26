@@ -111,7 +111,7 @@ class SuSFSConfigHelper(
     suspend fun addSusPath(path: String): Boolean {
         val ok = executeConfigMutation(
             command = "sus_path add ${shellQuote(path)}",
-            currentKernelCommands = listOf("add_sus_path ${shellQuote(path)}"),
+            currentKernelCommands = listOf("add_sus_path ${shellQuote(path)} --force"),
         )
         if (ok) {
             val curr = cachedConfig ?: SuSFSConfig.createDefault()
@@ -125,7 +125,7 @@ class SuSFSConfigHelper(
     suspend fun addSusPathLoop(path: String): Boolean {
         val ok = executeConfigMutation(
             command = "sus_path add ${shellQuote(path)} --loop",
-            currentKernelCommands = listOf("add_sus_path ${shellQuote(path)}"),
+            currentKernelCommands = listOf("add_sus_path ${shellQuote(path)} --force"),
         )
         if (ok) {
             val curr = cachedConfig ?: SuSFSConfig.createDefault()
@@ -134,6 +134,23 @@ class SuSFSConfigHelper(
             cachedConfig = curr.copy(sus_path = updated)
         }
         return ok
+    }
+
+    suspend fun setAutoHide(enabled: Boolean): Boolean {
+        val command = if (enabled) "auto_hide enable" else "auto_hide disable"
+        val ok = executeSusfsCommand(command).success
+        if (ok) {
+            refreshConfig()
+        }
+        return ok
+    }
+
+    suspend fun getAutoHideStatus(): String {
+        val result = executeSusfsCommand("auto_hide status --json")
+        if (result.success && result.stdout.isNotBlank()) {
+            return result.stdout
+        }
+        return ""
     }
 
     suspend fun removeSusPath(path: String): Boolean {
