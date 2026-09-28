@@ -68,6 +68,7 @@ import com.voidkernel.voidsu.domain.usecase.GenerateBugreportUseCase
 import com.voidkernel.voidsu.domain.usecase.GetAppProfileUseCase
 import com.voidkernel.voidsu.domain.usecase.GetAppSepolicyUseCase
 import com.voidkernel.voidsu.domain.usecase.GetBooleanPreferenceUseCase
+import com.voidkernel.voidsu.domain.usecase.GetIntegerPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.GetCatalogModuleUseCase
 import com.voidkernel.voidsu.domain.usecase.GetDefaultUmountModulesUseCase
 import com.voidkernel.voidsu.domain.usecase.GetHomeBasicInfoUseCase
@@ -120,6 +121,7 @@ import com.voidkernel.voidsu.domain.usecase.SelectDynamicManagerUseCase
 import com.voidkernel.voidsu.domain.usecase.SetAppProfileUseCase
 import com.voidkernel.voidsu.domain.usecase.SetAppSepolicyUseCase
 import com.voidkernel.voidsu.domain.usecase.SetBooleanPreferenceUseCase
+import com.voidkernel.voidsu.domain.usecase.SetIntegerPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.SetDefaultUmountModulesUseCase
 import com.voidkernel.voidsu.domain.usecase.SetKernelUmountEnabledUseCase
 import com.voidkernel.voidsu.domain.usecase.SetManualDynamicManagerUseCase
@@ -347,6 +349,8 @@ val useCaseModule = module {
     factoryOf(::ExportProfileTemplatesUseCase)
     factoryOf(::GetBooleanPreferenceUseCase)
     factoryOf(::SetBooleanPreferenceUseCase)
+    factoryOf(::GetIntegerPreferenceUseCase)
+    factoryOf(::SetIntegerPreferenceUseCase)
     factoryOf(::GetStringPreferenceUseCase)
     factoryOf(::SetStringPreferenceUseCase)
     factoryOf(::GetStringSetPreferenceUseCase)

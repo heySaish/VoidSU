@@ -11,6 +11,7 @@ import com.voidkernel.voidsu.domain.model.HomeSystemInfo
 import com.voidkernel.voidsu.domain.model.ManagerUpdateChannel
 import com.voidkernel.voidsu.domain.usecase.CheckManagerUpdateUseCase
 import com.voidkernel.voidsu.domain.usecase.GetBooleanPreferenceUseCase
+import com.voidkernel.voidsu.domain.usecase.GetIntegerPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.GetHomeBasicInfoUseCase
 import com.voidkernel.voidsu.domain.usecase.GetKernelStatusUseCase
 import com.voidkernel.voidsu.domain.usecase.GetManagerRuntimeInfoUseCase
@@ -18,6 +19,7 @@ import com.voidkernel.voidsu.domain.usecase.GetSuSFSStatusUseCase
 import com.voidkernel.voidsu.domain.usecase.IsNetworkAvailableUseCase
 import com.voidkernel.voidsu.domain.usecase.RebootUseCase
 import com.voidkernel.voidsu.domain.usecase.SetBooleanPreferenceUseCase
+import com.voidkernel.voidsu.domain.usecase.SetIntegerPreferenceUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -59,6 +61,8 @@ class HomeViewModel(
     private val isNetworkAvailable: IsNetworkAvailableUseCase,
     private val getBooleanPreference: GetBooleanPreferenceUseCase,
     private val setBooleanPreference: SetBooleanPreferenceUseCase,
+    private val getIntegerPreference: GetIntegerPreferenceUseCase,
+    private val setIntegerPreference: SetIntegerPreferenceUseCase,
     private val reboot: RebootUseCase,
 ) : ViewModel() {
     val uiState = combine(
@@ -66,10 +70,25 @@ class HomeViewModel(
         superUserRepository.state,
         moduleRepository.installedModules,
     ) { homeState, superUserState, moduleState ->
+        val cachedModules = getIntegerPreference(KEY_CACHED_MODULE_COUNT, 0)
+        val cachedSu = getIntegerPreference(KEY_CACHED_SUPERUSER_COUNT, 0)
+
+        val moduleCount = if (moduleState.modules.isNotEmpty()) {
+            moduleState.modules.size.also { setIntegerPreference(KEY_CACHED_MODULE_COUNT, it) }
+        } else {
+            cachedModules
+        }
+
+        val superuserCount = if (superUserState.groups.isNotEmpty()) {
+            superUserState.groups.filter { it.allowSu }.size.also { setIntegerPreference(KEY_CACHED_SUPERUSER_COUNT, it) }
+        } else {
+            cachedSu
+        }
+
         homeState.copy(
             systemInfo = homeState.systemInfo.copy(
-                moduleCount = moduleState.modules.size,
-                superuserCount = superUserState.groups.filter { it.allowSu }.size,
+                moduleCount = moduleCount,
+                superuserCount = superuserCount,
                 zygiskImplement = ksuCliRepository.getZygiskImplement(),
                 metaModuleImplement = ksuCliRepository.getMetaModuleImplement(),
             )
@@ -251,5 +270,7 @@ class HomeViewModel(
         const val PREF_SIMPLE_MODE = "is_simple_mode"
         const val PREF_SHOW_NAVIGATION_BAR_BADGE = "show_navigation_bar_badge"
         const val PREF_SHOW_HOME_CARD_ICONS = "show_home_card_icons"
+        const val KEY_CACHED_MODULE_COUNT = "cached_module_count"
+        const val KEY_CACHED_SUPERUSER_COUNT = "cached_superuser_count"
     }
 }

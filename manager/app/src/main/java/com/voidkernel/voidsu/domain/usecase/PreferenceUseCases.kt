@@ -29,6 +29,15 @@ class SetStringSetPreferenceUseCase(private val repository: AppSettingsRepositor
     operator fun invoke(key: String, value: Set<String>) = repository.putStringSet(key, value)
 }
 
+class GetIntegerPreferenceUseCase(private val repository: AppSettingsRepository) {
+    operator fun invoke(key: String, defaultValue: Int = 0) =
+        repository.getInt(key, defaultValue)
+}
+
+class SetIntegerPreferenceUseCase(private val repository: AppSettingsRepository) {
+    operator fun invoke(key: String, value: Int) = repository.putInt(key, value)
+}
+
 class RemovePreferenceUseCase(private val repository: AppSettingsRepository) {
     operator fun invoke(key: String) = repository.remove(key)
 }
