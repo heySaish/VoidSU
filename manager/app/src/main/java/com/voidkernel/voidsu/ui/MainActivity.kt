@@ -181,7 +181,6 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 homeViewModel.dispatch(HomeUiAction.Refresh(showIndicator = false))
-                superUserViewModel.dispatch(SuperUserUiAction.Refresh)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

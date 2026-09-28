@@ -117,6 +117,10 @@ fun SuperUserPage(bottomPadding: Dp) {
     val confirmText = stringResource(R.string.confirm)
     val cancelText = stringResource(R.string.cancel)
 
+    LaunchedEffect(Unit) {
+        viewModel.dispatch(SuperUserUiAction.Refresh)
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.events.collectLatest { event ->
             when (event) {
