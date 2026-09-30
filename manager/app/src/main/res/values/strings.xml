@@ -339,6 +339,9 @@
     <string name="temporary">Temporary</string>
     <string name="susfs_config_title">SuSFS Configuration</string>
     <string name="susfs_config_setting_title">SuSFS Configuration</string>
+    <string name="susfs_config_setting_summary">Configure SuSFS kernel features and options</string>
+    <string name="voidkernel_controls">VoidKernel Controls</string>
+    <string name="voidkernel_controls_summary">Advanced kernel features and tweaks (Coming Soon)</string>
     <string name="module_update_json">Update JSON</string>
     <string name="module_update_json_copied">Update JSON URL copied to clipboard</string>
     <string name="show_more_module_info">Show More Module Info</string>

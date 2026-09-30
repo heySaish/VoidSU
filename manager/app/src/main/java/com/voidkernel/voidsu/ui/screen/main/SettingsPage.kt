@@ -37,6 +37,7 @@ import androidx.compose.material.icons.twotone.FolderDelete
 import androidx.compose.material.icons.twotone.FolderOff
 import androidx.compose.material.icons.twotone.Info
 import androidx.compose.material.icons.twotone.Policy
+import androidx.compose.material.icons.twotone.Build
 import androidx.compose.material.icons.twotone.RemoveCircle
 import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material.icons.twotone.Save
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.twotone.Science
 import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material.icons.twotone.Share
+import androidx.compose.material.icons.twotone.Tune
 import androidx.compose.material.icons.twotone.Update
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -436,6 +438,32 @@ fun SettingsPage(bottomPadding: Dp) {
                                 title = stringResource(R.string.send_log),
                                 onClick = {
                                     showBottomsheet = true
+                                }
+                            )
+                        }
+
+                        item(visible = homeState.systemInfo.susfsVersionSupported) {
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Tune,
+                                title = stringResource(R.string.susfs_config_setting_title),
+                                description = stringResource(R.string.susfs_config_setting_summary),
+                                onClick = {
+                                    navigator.push(Route.SuSFSConfig)
+                                }
+                            )
+                        }
+
+                        item {
+                            SettingsJumpPageWidget(
+                                icon = Icons.TwoTone.Build,
+                                title = stringResource(R.string.voidkernel_controls),
+                                description = stringResource(R.string.voidkernel_controls_summary),
+                                onClick = {
+                                    scope.launch {
+                                        snackBarHost.showReplacingSnackbar(
+                                            context.getString(R.string.voidkernel_controls_summary)
+                                        )
+                                    }
                                 }
                             )
                         }
