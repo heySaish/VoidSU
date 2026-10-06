@@ -248,8 +248,6 @@ class SuperUserViewModel(
             }
         }
     }
-        }
-    }
 
     suspend fun fetchAppList() {
         refreshSuperUsers()
