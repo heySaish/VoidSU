@@ -6,12 +6,14 @@ import com.voidkernel.voidsu.R
 import com.voidkernel.voidsu.domain.model.AllowlistOperationResult
 import com.voidkernel.voidsu.domain.model.InstalledAppGroup
 import com.voidkernel.voidsu.domain.usecase.BackupAllowlistUseCase
+import com.voidkernel.voidsu.domain.usecase.GetAppProfileUseCase
 import com.voidkernel.voidsu.domain.usecase.GetBooleanPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.GetManagerRuntimeInfoUseCase
 import com.voidkernel.voidsu.domain.usecase.GetStringPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.ImportAllowlistUseCase
 import com.voidkernel.voidsu.domain.usecase.ObserveSuperUserStateUseCase
 import com.voidkernel.voidsu.domain.usecase.RefreshSuperUsersUseCase
+import com.voidkernel.voidsu.domain.usecase.SetAppProfileUseCase
 import com.voidkernel.voidsu.domain.usecase.SetBooleanPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.SetStringPreferenceUseCase
 import com.voidkernel.voidsu.domain.usecase.TransliterateTextUseCase
@@ -47,6 +49,8 @@ data class SuperUserUiState(
     val reverseOrder: Boolean = false,
     val managerUids: Set<Int> = emptySet(),
     val isRefreshing: Boolean = false,
+    val isSelectionMode: Boolean = false,
+    val selectedUids: Set<Int> = emptySet(),
 )
 
 sealed interface SuperUserUiAction {
@@ -58,6 +62,12 @@ sealed interface SuperUserUiAction {
     data class SetSort(val sortType: SortType) : SuperUserUiAction
     data class SetReverseOrder(val enabled: Boolean) : SuperUserUiAction
     data object StatusChanged : SuperUserUiAction
+    data class SetSelectionMode(val enabled: Boolean) : SuperUserUiAction
+    data class ToggleSelectApp(val uid: Int) : SuperUserUiAction
+    data object SelectAll : SuperUserUiAction
+    data object DeselectAll : SuperUserUiAction
+    data class BatchSetRoot(val allowSu: Boolean) : SuperUserUiAction
+    data class BatchSetUmount(val umount: Boolean) : SuperUserUiAction
 }
 
 sealed interface SuperUserUiEvent {
@@ -75,6 +85,11 @@ private data class SuperUserControls(
     val reverseOrder: Boolean = false,
 )
 
+private data class SelectionState(
+    val isSelectionMode: Boolean = false,
+    val selectedUids: Set<Int> = emptySet(),
+)
+
 class SuperUserViewModel(
     observeSuperUserState: ObserveSuperUserStateUseCase,
     private val refreshSuperUsers: RefreshSuperUsersUseCase,
@@ -86,6 +101,8 @@ class SuperUserViewModel(
     private val setStringPreference: SetStringPreferenceUseCase,
     private val transliterateText: TransliterateTextUseCase,
     private val getManagerRuntimeInfo: GetManagerRuntimeInfoUseCase,
+    private val getAppProfileUseCase: GetAppProfileUseCase,
+    private val setAppProfileUseCase: SetAppProfileUseCase,
 ) : ViewModel() {
     private val sourceState = observeSuperUserState()
     private val controls = MutableStateFlow(
@@ -98,6 +115,7 @@ class SuperUserViewModel(
             reverseOrder = getBooleanPreference(KEY_REVERSE_ORDER, false),
         )
     )
+    private val selectionState = MutableStateFlow(SelectionState())
     private val mutableEvents = MutableSharedFlow<SuperUserUiEvent>(extraBufferCapacity = 1)
     private var refreshJob: Job? = null
     val events: SharedFlow<SuperUserUiEvent> = mutableEvents.asSharedFlow()
@@ -112,8 +130,8 @@ class SuperUserViewModel(
     }
 
     val state: StateFlow<SuperUserUiState> = combine(
-        sourceState, controls, managerUids,
-    ) { source, local, uids ->
+        sourceState, controls, managerUids, selectionState,
+    ) { source, local, uids, selection ->
         SuperUserUiState(
             appGroupList = buildAppGroupList(
                 groups = source.groups,
@@ -128,6 +146,8 @@ class SuperUserViewModel(
             reverseOrder = local.reverseOrder,
             managerUids = uids,
             isRefreshing = source.refreshing,
+            isSelectionMode = selection.isSelectionMode,
+            selectedUids = selection.selectedUids,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, SuperUserUiState())
     val uiState: StateFlow<SuperUserUiState> = state
@@ -176,6 +196,58 @@ class SuperUserViewModel(
             }
 
             SuperUserUiAction.StatusChanged -> notifySuperuserStatusChanged()
+
+            is SuperUserUiAction.SetSelectionMode -> {
+                selectionState.value = SelectionState(
+                    isSelectionMode = action.enabled,
+                    selectedUids = if (action.enabled) selectionState.value.selectedUids else emptySet()
+                )
+            }
+
+            is SuperUserUiAction.ToggleSelectApp -> {
+                val current = selectionState.value.selectedUids
+                val newSet = if (action.uid in current) current - action.uid else current + action.uid
+                selectionState.value = SelectionState(
+                    isSelectionMode = newSet.isNotEmpty(),
+                    selectedUids = newSet
+                )
+            }
+
+            SuperUserUiAction.SelectAll -> {
+                val allUids = state.value.appGroupList.map { it.uid }.toSet()
+                selectionState.value = SelectionState(
+                    isSelectionMode = true,
+                    selectedUids = allUids
+                )
+            }
+
+            SuperUserUiAction.DeselectAll -> {
+                selectionState.value = selectionState.value.copy(selectedUids = emptySet())
+            }
+
+            is SuperUserUiAction.BatchSetRoot -> viewModelScope.launch {
+                val selected = selectionState.value.selectedUids
+                val groups = state.value.appGroupList.filter { it.uid in selected }
+                for (group in groups) {
+                    val profile = getAppProfileUseCase(group.primaryPackageName, group.uid)
+                    setAppProfileUseCase(profile.copy(allowSu = action.allowSu))
+                }
+                selectionState.value = SelectionState(isSelectionMode = false, selectedUids = emptySet())
+                notifySuperuserStatusChanged()
+            }
+
+            is SuperUserUiAction.BatchSetUmount -> viewModelScope.launch {
+                val selected = selectionState.value.selectedUids
+                val groups = state.value.appGroupList.filter { it.uid in selected }
+                for (group in groups) {
+                    val profile = getAppProfileUseCase(group.primaryPackageName, group.uid)
+                    setAppProfileUseCase(profile.copy(allowSu = false, umountModules = action.umount))
+                }
+                selectionState.value = SelectionState(isSelectionMode = false, selectedUids = emptySet())
+                notifySuperuserStatusChanged()
+            }
+        }
+    }
         }
     }
 

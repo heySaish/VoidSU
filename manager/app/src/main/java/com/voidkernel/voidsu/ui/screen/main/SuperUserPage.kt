@@ -3,6 +3,7 @@ package com.voidkernel.voidsu.ui.screen.main
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,18 +16,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material.icons.twotone.Archive
+import androidx.compose.material.icons.twotone.CheckCircle
+import androidx.compose.material.icons.twotone.Checklist
 import androidx.compose.material.icons.twotone.ChevronRight
+import androidx.compose.material.icons.twotone.Close
 import androidx.compose.material.icons.twotone.MoreVert
+import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material.icons.twotone.SearchOff
+import androidx.compose.material.icons.twotone.SelectAll
+import androidx.compose.material.icons.twotone.Undo
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
@@ -36,6 +47,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -185,44 +197,71 @@ fun SuperUserPage(bottomPadding: Dp) {
 
     Scaffold(
         topBar = {
-            SearchAppBar(
-                title = stringResource(R.string.superuser),
-                searchText = uiState.search,
-                onSearchTextChange = { viewModel.dispatch(SuperUserUiAction.Search(it)) },
-                dropdownContent = {
-                    IconButton(onClick = { showDropdown = true }) {
-                        Icon(
-                            imageVector = Icons.TwoTone.MoreVert,
-                            contentDescription = stringResource(id = R.string.settings),
-                        )
+            if (uiState.isSelectionMode) {
+                SelectionTopBar(
+                    selectedCount = uiState.selectedUids.size,
+                    totalCount = uiState.appGroupList.size,
+                    onClose = { viewModel.dispatch(SuperUserUiAction.SetSelectionMode(false)) },
+                    onToggleSelectAll = {
+                        if (uiState.selectedUids.size == uiState.appGroupList.size) {
+                            viewModel.dispatch(SuperUserUiAction.DeselectAll)
+                        } else {
+                            viewModel.dispatch(SuperUserUiAction.SelectAll)
+                        }
+                    },
+                    onGrantRoot = { viewModel.dispatch(SuperUserUiAction.BatchSetRoot(true)) },
+                    onSetNormal = { viewModel.dispatch(SuperUserUiAction.BatchSetRoot(false)) },
+                    onSetExclude = { viewModel.dispatch(SuperUserUiAction.BatchSetUmount(true)) },
+                )
+            } else {
+                SearchAppBar(
+                    title = stringResource(R.string.superuser),
+                    searchText = uiState.search,
+                    onSearchTextChange = { viewModel.dispatch(SuperUserUiAction.Search(it)) },
+                    dropdownContent = {
+                        IconButton(onClick = {
+                            viewModel.dispatch(SuperUserUiAction.SetSelectionMode(true))
+                        }) {
+                            Icon(
+                                imageVector = Icons.TwoTone.Checklist,
+                                contentDescription = "Multi Select",
+                            )
+                        }
 
-                        SuperUserDropdown(
-                            expanded = showDropdown,
-                            onDismissRequest = { showDropdown = false },
-                            viewModel = viewModel,
-                            uiState = uiState,
-                            onBackupAllowlist = {
-                                backupLauncher.launch(createAllowlistBackupFileName())
-                            },
-                            onRestoreAllowlist = {
-                                restoreLauncher.launch(arrayOf("application/octet-stream"))
-                            },
-                        )
-                    }
-                },
-                navigationContent = {
-                    IconButton(onClick = {
-                        navigator.push(Route.Sulog)
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.TwoTone.Article,
-                            contentDescription = stringResource(R.string.sulog)
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                searchBarPlaceHolderText = stringResource(R.string.search_apps),
-            )
+                        IconButton(onClick = { showDropdown = true }) {
+                            Icon(
+                                imageVector = Icons.TwoTone.MoreVert,
+                                contentDescription = stringResource(id = R.string.settings),
+                            )
+
+                            SuperUserDropdown(
+                                expanded = showDropdown,
+                                onDismissRequest = { showDropdown = false },
+                                viewModel = viewModel,
+                                uiState = uiState,
+                                onBackupAllowlist = {
+                                    backupLauncher.launch(createAllowlistBackupFileName())
+                                },
+                                onRestoreAllowlist = {
+                                    restoreLauncher.launch(arrayOf("application/octet-stream"))
+                                },
+                            )
+                        }
+                    },
+                    navigationContent = {
+                        IconButton(onClick = {
+                            navigator.push(Route.Sulog)
+                        }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.TwoTone.Article,
+                                contentDescription = stringResource(R.string.sulog)
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    searchBarPlaceHolderText = stringResource(R.string.search_apps),
+                )
+            }
         },
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -364,14 +403,96 @@ private fun SuperUserContent(
                 AppGroupItem(
                     appGroup = appGroup,
                     isManager = appGroup.uid in uiState.managerUids,
-                ) {
-                    navigator.push(Route.AppProfile(appGroup.uid, appGroup.profileKey))
-                }
+                    isSelectionMode = uiState.isSelectionMode,
+                    isSelected = appGroup.uid in uiState.selectedUids,
+                    onClick = {
+                        if (uiState.isSelectionMode) {
+                            viewModel.dispatch(SuperUserUiAction.ToggleSelectApp(appGroup.uid))
+                        } else {
+                            navigator.push(Route.AppProfile(appGroup.uid, appGroup.profileKey))
+                        }
+                    },
+                    onLongClick = {
+                        viewModel.dispatch(SuperUserUiAction.ToggleSelectApp(appGroup.uid))
+                    },
+                )
             }
 
             item {
                 Spacer(modifier = Modifier.height(bottomPadding + innerPadding.calculateBottomPadding() + 15.dp))
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    selectedCount: Int,
+    totalCount: Int,
+    onClose: () -> Unit,
+    onToggleSelectAll: () -> Unit,
+    onGrantRoot: () -> Unit,
+    onSetNormal: () -> Unit,
+    onSetExclude: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .statusBarsPadding()
+    ) {
+        TopAppBar(
+            title = { Text(text = "$selectedCount picked", style = MaterialTheme.typography.titleMedium) },
+            navigationIcon = {
+                IconButton(onClick = onClose) {
+                    Icon(imageVector = Icons.TwoTone.Close, contentDescription = "Close")
+                }
+            },
+            actions = {
+                IconButton(onClick = onToggleSelectAll) {
+                    Icon(imageVector = Icons.TwoTone.SelectAll, contentDescription = "Select All")
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            FilterChip(
+                selected = false,
+                onClick = onGrantRoot,
+                label = { Text("Grant Root") },
+                leadingIcon = { Icon(Icons.TwoTone.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+            FilterChip(
+                selected = false,
+                onClick = onSetNormal,
+                label = { Text("Normal") },
+                leadingIcon = { Icon(Icons.TwoTone.Undo, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            )
+            FilterChip(
+                selected = false,
+                onClick = onSetExclude,
+                label = { Text("Exclude") },
+                leadingIcon = { Icon(Icons.TwoTone.RemoveModerator, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    labelColor = MaterialTheme.colorScheme.onErrorContainer
+                )
+            )
         }
     }
 }
@@ -470,13 +591,15 @@ private fun SuperUserDropdown(
 private fun AppGroupItem(
     appGroup: InstalledAppGroup,
     isManager: Boolean,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val mainApp = appGroup.mainApp
     SettingsBaseWidget(
-        onClick = {
-            onClick()
-        },
+        onClick = { onClick() },
+        onLongClick = { onLongClick() },
         title = mainApp.label,
         description = if (appGroup.apps.size > 1) {
             stringResource(R.string.group_contains_apps, appGroup.apps.size)
@@ -544,11 +667,18 @@ private fun AppGroupItem(
         },
         iconPlaceholder = false,
     ) {
-        Icon(
-            imageVector = Icons.TwoTone.ChevronRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(24.dp)
-        )
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onClick() },
+            )
+        } else {
+            Icon(
+                imageVector = Icons.TwoTone.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
