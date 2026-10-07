@@ -28,10 +28,10 @@ jobs:
         run: |
           echo "Using embedded VoidSU fixed keystore..."
           {
-            echo KEYSTORE_FILE='key.jks'
-            echo KEYSTORE_PASSWORD='voidsu123'
-            echo KEY_ALIAS='voidsu'
-            echo KEY_PASSWORD='voidsu123'
+            echo KEYSTORE_FILE=key.jks
+            echo KEYSTORE_PASSWORD=voidsu123
+            echo KEY_ALIAS=voidsu
+            echo KEY_PASSWORD=voidsu123
           } >> gradle.properties
           python3 -c "import base64, os; d = os.environ['DEFAULT_KEYSTORE_B64'].strip().replace(' ', '').replace('\n', '').replace('\r', ''); pad = len(d) % 4; d += '=' * (4 - pad) if pad else ''; open('key.jks', 'wb').write(base64.b64decode(d))"
 
