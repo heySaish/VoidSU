@@ -1,6 +1,7 @@
 package com.voidkernel.voidsu.ui.screen.main
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -14,11 +15,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material.icons.twotone.Archive
@@ -31,6 +34,7 @@ import androidx.compose.material.icons.twotone.RemoveModerator
 import androidx.compose.material.icons.twotone.SearchOff
 import androidx.compose.material.icons.twotone.SelectAll
 import androidx.compose.material.icons.twotone.Undo
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuPopup
@@ -46,7 +50,9 @@ import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -64,12 +70,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.voidkernel.voidsu.R
 import com.voidkernel.voidsu.domain.model.AllowlistOperationResult
@@ -89,6 +98,7 @@ import com.voidkernel.voidsu.ui.theme.blurSource
 import com.voidkernel.voidsu.ui.util.LocalSnackbarHost
 import com.voidkernel.voidsu.ui.util.adaptiveScaffoldWindowInsets
 import com.voidkernel.voidsu.ui.util.showReplacingSnackbar
+import com.voidkernel.voidsu.ui.viewmodel.BatchAction
 import com.voidkernel.voidsu.ui.viewmodel.SortType
 import com.voidkernel.voidsu.ui.viewmodel.SuperUserUiAction
 import com.voidkernel.voidsu.ui.viewmodel.SuperUserUiEvent
@@ -123,11 +133,17 @@ fun SuperUserPage(bottomPadding: Dp) {
     val snackBarHostState = LocalSnackbarHost.current
 
     var showDropdown by remember { mutableStateOf(false) }
+    var pendingBatch by remember { mutableStateOf<BatchAction?>(null) }
+
     val restoreConfirmDialog = rememberConfirmDialog()
     val restoreConfirmTitle = stringResource(R.string.allowlist_restore_confirm_title)
     val restoreConfirmMessage = stringResource(R.string.allowlist_restore_confirm_message)
     val confirmText = stringResource(R.string.confirm)
     val cancelText = stringResource(R.string.cancel)
+
+    BackHandler(enabled = uiState.isSelectionMode) {
+        viewModel.dispatch(SuperUserUiAction.SetSelectionMode(false))
+    }
 
     LaunchedEffect(Unit) {
         viewModel.dispatch(SuperUserUiAction.Refresh)
@@ -209,9 +225,7 @@ fun SuperUserPage(bottomPadding: Dp) {
                             viewModel.dispatch(SuperUserUiAction.SelectAll)
                         }
                     },
-                    onGrantRoot = { viewModel.dispatch(SuperUserUiAction.BatchSetRoot(true)) },
-                    onSetNormal = { viewModel.dispatch(SuperUserUiAction.BatchSetRoot(false)) },
-                    onSetExclude = { viewModel.dispatch(SuperUserUiAction.BatchSetUmount(true)) },
+                    onAction = { batch -> pendingBatch = batch },
                 )
             } else {
                 SearchAppBar(
@@ -280,6 +294,34 @@ fun SuperUserPage(bottomPadding: Dp) {
             listState = listState,
             scrollBehavior = scrollBehavior,
             bottomPadding = bottomPadding,
+        )
+    }
+
+    pendingBatch?.let { batch ->
+        val titleRes = when (batch) {
+            BatchAction.GRANT_ROOT -> R.string.su_multi_select_confirm_grant
+            BatchAction.NORMAL -> R.string.su_multi_select_confirm_normal
+            BatchAction.EXCLUDE -> R.string.su_multi_select_confirm_exclude
+        }
+        AlertDialog(
+            onDismissRequest = { pendingBatch = null },
+            title = { Text(text = stringResource(titleRes, uiState.selectedUids.size)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val currentBatch = batch
+                        pendingBatch = null
+                        viewModel.dispatch(SuperUserUiAction.BatchApply(currentBatch))
+                    }
+                ) {
+                    Text(text = stringResource(android.R.string.ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingBatch = null }) {
+                    Text(text = stringResource(android.R.string.cancel))
+                }
+            }
         )
     }
 }
@@ -432,9 +474,7 @@ private fun SelectionTopBar(
     totalCount: Int,
     onClose: () -> Unit,
     onToggleSelectAll: () -> Unit,
-    onGrantRoot: () -> Unit,
-    onSetNormal: () -> Unit,
-    onSetExclude: () -> Unit,
+    onAction: (BatchAction) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -443,10 +483,10 @@ private fun SelectionTopBar(
             .statusBarsPadding()
     ) {
         TopAppBar(
-            title = { Text(text = "$selectedCount picked", style = MaterialTheme.typography.titleMedium) },
+            title = { Text(text = stringResource(R.string.su_multi_select_count, selectedCount), style = MaterialTheme.typography.titleMedium) },
             navigationIcon = {
                 IconButton(onClick = onClose) {
-                    Icon(imageVector = Icons.TwoTone.Close, contentDescription = "Close")
+                    Icon(imageVector = Icons.TwoTone.Close, contentDescription = stringResource(android.R.string.cancel))
                 }
             },
             actions = {
@@ -460,38 +500,69 @@ private fun SelectionTopBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            FilterChip(
-                selected = false,
-                onClick = onGrantRoot,
-                label = { Text("Grant Root") },
-                leadingIcon = { Icon(Icons.TwoTone.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+            SuperUserBatchButton(
+                icon = Icons.TwoTone.CheckCircle,
+                label = stringResource(R.string.su_multi_select_grant_label),
+                enabled = selectedCount > 0,
+                onClick = { onAction(BatchAction.GRANT_ROOT) },
+                modifier = Modifier.weight(1f),
             )
-            FilterChip(
-                selected = false,
-                onClick = onSetNormal,
-                label = { Text("Normal") },
-                leadingIcon = { Icon(Icons.TwoTone.Undo, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
+            SuperUserBatchButton(
+                icon = Icons.TwoTone.Undo,
+                label = stringResource(R.string.su_multi_select_normal_label),
+                enabled = selectedCount > 0,
+                onClick = { onAction(BatchAction.NORMAL) },
+                modifier = Modifier.weight(1f),
             )
-            FilterChip(
-                selected = false,
-                onClick = onSetExclude,
-                label = { Text("Exclude") },
-                leadingIcon = { Icon(Icons.TwoTone.RemoveModerator, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    labelColor = MaterialTheme.colorScheme.onErrorContainer
-                )
+            SuperUserBatchButton(
+                icon = Icons.TwoTone.RemoveModerator,
+                label = stringResource(R.string.su_multi_select_exclude_label),
+                enabled = selectedCount > 0,
+                onClick = { onAction(BatchAction.EXCLUDE) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SuperUserBatchButton(
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerColor = if (enabled) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow
+    val contentColor = if (enabled) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        shape = RoundedCornerShape(12.dp),
+        color = containerColor,
+        modifier = modifier.heightIn(min = 72.dp),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = contentColor
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                color = contentColor,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -668,10 +739,26 @@ private fun AppGroupItem(
         iconPlaceholder = false,
     ) {
         if (isSelectionMode) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onClick() },
-            )
+            Box(
+                modifier = Modifier.size(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.TwoTone.CheckCircle,
+                        contentDescription = stringResource(R.string.su_multi_select_selected),
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.TwoTone.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f),
+                    )
+                }
+            }
         } else {
             Icon(
                 imageVector = Icons.TwoTone.ChevronRight,

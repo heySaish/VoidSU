@@ -53,6 +53,12 @@ data class SuperUserUiState(
     val selectedUids: Set<Int> = emptySet(),
 )
 
+enum class BatchAction {
+    GRANT_ROOT,
+    NORMAL,
+    EXCLUDE
+}
+
 sealed interface SuperUserUiAction {
     data object Refresh : SuperUserUiAction
     data class BackupAllowlist(val uri: String) : SuperUserUiAction
@@ -68,6 +74,7 @@ sealed interface SuperUserUiAction {
     data object DeselectAll : SuperUserUiAction
     data class BatchSetRoot(val allowSu: Boolean) : SuperUserUiAction
     data class BatchSetUmount(val umount: Boolean) : SuperUserUiAction
+    data class BatchApply(val action: BatchAction) : SuperUserUiAction
 }
 
 sealed interface SuperUserUiEvent {
@@ -242,6 +249,22 @@ class SuperUserViewModel(
                 for (group in groups) {
                     val profile = getAppProfileUseCase(group.primaryPackageName, group.uid)
                     setAppProfileUseCase(profile.copy(allowSu = false, umountModules = action.umount))
+                }
+                selectionState.value = SelectionState(isSelectionMode = false, selectedUids = emptySet())
+                notifySuperuserStatusChanged()
+            }
+
+            is SuperUserUiAction.BatchApply -> viewModelScope.launch {
+                val selected = selectionState.value.selectedUids
+                val groups = state.value.appGroupList.filter { it.uid in selected }
+                for (group in groups) {
+                    val profile = getAppProfileUseCase(group.primaryPackageName, group.uid)
+                    val updatedProfile = when (action.action) {
+                        BatchAction.GRANT_ROOT -> profile.copy(allowSu = true, umountModules = false)
+                        BatchAction.NORMAL -> profile.copy(allowSu = false, umountModules = false)
+                        BatchAction.EXCLUDE -> profile.copy(allowSu = false, umountModules = true)
+                    }
+                    setAppProfileUseCase(updatedProfile)
                 }
                 selectionState.value = SelectionState(isSelectionMode = false, selectedUids = emptySet())
                 notifySuperuserStatusChanged()
