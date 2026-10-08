@@ -1,6 +1,5 @@
 package com.voidkernel.voidsu.ui.activity.util
 
-import com.voidkernel.voidsu.data.AppSettingsRepository
 import com.voidkernel.voidsu.data.theme.ThemeRepository
 import com.voidkernel.voidsu.ui.theme.BackgroundManager
 import com.voidkernel.voidsu.ui.theme.CardConfig
@@ -9,7 +8,6 @@ import com.voidkernel.voidsu.ui.viewmodel.SettingsUiAction
 import com.voidkernel.voidsu.ui.viewmodel.SettingsViewModel
 
 class ThemeUtils(
-    private val settings: AppSettingsRepository,
     private val themeConfig: ThemeConfig,
     private val themeRepository: ThemeRepository,
     private val cardConfig: CardConfig,
@@ -24,13 +22,9 @@ class ThemeUtils(
 
     fun onActivityPause() {
         cardConfig.save()
-        settings.putBoolean("prevent_background_refresh", true)
-        themeConfig.preventBackgroundRefresh = true
     }
 
     fun onActivityResume() {
-        settings.putBoolean("prevent_background_refresh", false)
-        themeConfig.preventBackgroundRefresh = false
         loadThemeSettings()
     }
 
