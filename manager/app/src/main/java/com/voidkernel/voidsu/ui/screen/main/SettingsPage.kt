@@ -459,7 +459,8 @@ fun SettingsPage(bottomPadding: Dp) {
                             )
                         }
 
-                        item(visible = homeState.systemInfo.susfsVersionSupported) {
+                        // App level disabled for now until VoidKernel SuSFS release
+                        item(visible = false) {
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.Tune,
                                 title = stringResource(R.string.susfs_config_setting_title),

@@ -154,8 +154,9 @@ class HomeViewModel(
                                 selinuxStatus = current.systemInfo.selinuxStatus.ifEmpty {
                                     basicInfo.selinuxStatus
                                 },
-                                susfsEnabled = susfsInfo.enabled,
-                                susfsVersionSupported = susfsInfo.enabled && susfsInfo.version.isNotBlank(),
+                                // App level disabled until VoidKernel SuSFS version is released
+                                susfsEnabled = false,
+                                susfsVersionSupported = false,
                                 susfsVersion = susfsInfo.version,
                                 susfsFeatures = susfsInfo.enabledFeatures,
                                 managersList = managerInfo,
