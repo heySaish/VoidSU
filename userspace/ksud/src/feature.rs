@@ -18,7 +18,10 @@ const FEATURE_VERSION: u32 = 1;
 pub enum FeatureId {
     SuCompat = 0,
     KernelUmount = 1,
-    EnhancedSecurity = 2,
+    SuLog = 2,
+    AdbRoot = 3,
+    SelinuxHide = 4,
+    SelinuxHideStatus = 5,
     AvcSpoof = 10003,
 }
 
@@ -27,7 +30,10 @@ impl FeatureId {
         match id {
             0 => Some(Self::SuCompat),
             1 => Some(Self::KernelUmount),
-            2 => Some(Self::EnhancedSecurity),
+            2 => Some(Self::SuLog),
+            3 => Some(Self::AdbRoot),
+            4 => Some(Self::SelinuxHide),
+            5 => Some(Self::SelinuxHideStatus),
             10003 => Some(Self::AvcSpoof),
             _ => None,
         }
@@ -37,7 +43,10 @@ impl FeatureId {
         match self {
             Self::SuCompat => "su_compat",
             Self::KernelUmount => "kernel_umount",
-            Self::EnhancedSecurity => "enhanced_security",
+            Self::SuLog => "sulog",
+            Self::AdbRoot => "adb_root",
+            Self::SelinuxHide => "selinux_hide",
+            Self::SelinuxHideStatus => "selinux_hide_status",
             Self::AvcSpoof => "avc_spoof",
         }
     }
@@ -50,8 +59,17 @@ impl FeatureId {
             Self::KernelUmount => {
                 "Kernel Umount - controls whether kernel automatically unmounts modules when not needed"
             }
-            Self::EnhancedSecurity => {
-                "Enhanced Security - disable non‑KSU root elevation and unauthorized UID downgrades"
+            Self::SuLog => {
+                "SU Logging - logs superuser access requests in kernel/logcat"
+            }
+            Self::AdbRoot => {
+                "ADB Root - run adbd daemon with root privileges"
+            }
+            Self::SelinuxHide => {
+                "SELinux Hide - hide SELinux modifications from detection"
+            }
+            Self::SelinuxHideStatus => {
+                "SELinux Hide Status - status of SELinux hiding mechanism"
             }
             Self::AvcSpoof => {
                 "AVC Spoof - fix selinux context leak due to avc denial"
@@ -64,7 +82,10 @@ fn parse_feature_id(name: &str) -> Result<FeatureId> {
     match name {
         "su_compat" | "0" => Ok(FeatureId::SuCompat),
         "kernel_umount" | "1" => Ok(FeatureId::KernelUmount),
-        "enhanced_security" | "2" => Ok(FeatureId::EnhancedSecurity),
+        "sulog" | "2" => Ok(FeatureId::SuLog),
+        "adb_root" | "3" => Ok(FeatureId::AdbRoot),
+        "selinux_hide" | "4" => Ok(FeatureId::SelinuxHide),
+        "selinux_hide_status" | "5" => Ok(FeatureId::SelinuxHideStatus),
         "avc_spoof" | "10003" => Ok(FeatureId::AvcSpoof),
         _ => bail!("Unknown feature: {name}"),
     }
@@ -289,7 +310,10 @@ pub fn list_features() {
     let all_features = [
         FeatureId::SuCompat,
         FeatureId::KernelUmount,
-        FeatureId::EnhancedSecurity,
+        FeatureId::SuLog,
+        FeatureId::AdbRoot,
+        FeatureId::SelinuxHide,
+        FeatureId::SelinuxHideStatus,
         FeatureId::AvcSpoof,
     ];
 
@@ -351,7 +375,10 @@ pub fn save_config() -> Result<()> {
     let all_features = [
         FeatureId::SuCompat,
         FeatureId::KernelUmount,
-        FeatureId::EnhancedSecurity,
+        FeatureId::SuLog,
+        FeatureId::AdbRoot,
+        FeatureId::SelinuxHide,
+        FeatureId::SelinuxHideStatus,
         FeatureId::AvcSpoof,
     ];
 
