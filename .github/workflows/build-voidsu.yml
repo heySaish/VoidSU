@@ -40,6 +40,22 @@ jobs:
             echo "KEY_PASSWORD=$KEY_PASSWORD"
           } >> gradle.properties
 
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Setup cargo-ndk
+        run: cargo install cargo-ndk
+
+      - name: Build ksud binary for arm64-v8a
+        run: |
+          cd ../userspace/ksud
+          cargo ndk -t arm64-v8a -o ../manager/app/src/main/jniLibs build --release
+          if [ -f ../manager/app/src/main/jniLibs/arm64-v8a/ksud ]; then
+            mv ../manager/app/src/main/jniLibs/arm64-v8a/ksud ../manager/app/src/main/jniLibs/arm64-v8a/libksud.so
+          fi
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
