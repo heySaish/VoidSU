@@ -21,6 +21,7 @@ jobs:
       KEYSTORE_PASSWORD: ${{ secrets.VOIDSU_KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.VOIDSU_KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.VOIDSU_KEY_PASSWORD }}
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
     steps:
       - name: Checkout
