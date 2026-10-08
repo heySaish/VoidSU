@@ -31,6 +31,7 @@ class ApplicationInitializationRepository(
         applicationScope.launch {
             runCatching { monetCompatColorSource.refresh() }
             runCatching { flashRepository.getInstallEnvironment() }
+            runCatching { ksuCliRepository.ensureKsudUpdated() }
         }
     }
 }

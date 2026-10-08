@@ -175,8 +175,96 @@ class KsuCliRepository(context: Context) {
         valueLine.substringAfter("Value:").trim().toLongOrNull()
     }
 
+    private fun getFileSha256(file: File): String? {
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            file.inputStream().use { input ->
+                val buffer = ByteArray(8192)
+                var bytesRead: Int
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    digest.update(buffer, 0, bytesRead)
+                }
+            }
+            digest.digest().joinToString("") { "%02x".format(it) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to calculate SHA-256 for ${file.absolutePath}", e)
+            null
+        }
+    }
+
+    suspend fun ensureKsudUpdated(): Boolean = withContext(Dispatchers.IO) {
+        val bundledFile = File(nativeLibraryDir, System.mapLibraryName("ksud"))
+        if (!bundledFile.exists() || !bundledFile.isFile) {
+            Log.w(TAG, "Bundled ksud missing at ${bundledFile.absolutePath}")
+            return@withContext false
+        }
+
+        val bundledHash = getFileSha256(bundledFile)
+        if (bundledHash.isNullOrEmpty()) {
+            Log.w(TAG, "Failed to compute bundled ksud SHA-256")
+            return@withContext false
+        }
+
+        val shell = getRootShell()
+        if (!shell.isRoot) {
+            Log.w(TAG, "Root shell not available to check/update ksud")
+            return@withContext false
+        }
+
+        val installedHashCmd = "sha256sum /data/adb/ksud 2>/dev/null | awk '{print \$1}'"
+        val installedHash = shell.newJob().add(installedHashCmd).to(ArrayList<String>(), null).exec().out
+            .firstOrNull()?.trim()?.lowercase().orEmpty()
+
+        Log.i(TAG, "ksud SHA-256 check -> Bundled: $bundledHash, Installed: $installedHash")
+
+        if (installedHash == bundledHash.lowercase()) {
+            Log.i(TAG, "Installed ksud matches bundled SHA-256. Skipping update.")
+            return@withContext true
+        }
+
+        Log.i(TAG, "ksud hash mismatch or missing (/data/adb/ksud). Performing atomic replacement...")
+
+        val bundledPath = shellQuote(bundledFile.absolutePath)
+        val adbRootArg = runCatching { shellQuote(getNativeLibraryPath("adbroot")) }
+            .map { "--libadbroot $it" }
+            .getOrDefault("")
+
+        val updateCmds = arrayOf(
+            "cp -f $bundledPath /data/adb/ksud.new",
+            "chmod 0755 /data/adb/ksud.new",
+            "/data/adb/ksud.new restorecon || chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new || true",
+            "mv -f /data/adb/ksud.new /data/adb/ksud",
+            "mkdir -p /data/adb/ksu/bin",
+            "rm -f /data/adb/ksu/bin/ksud",
+            "ln -sf /data/adb/ksud /data/adb/ksu/bin/ksud",
+            "/data/adb/ksud install $adbRootArg"
+        )
+
+        val result = shell.newJob().add(*updateCmds).exec()
+        val success = result.isSuccess
+        Log.i(TAG, "Atomic ksud update result: $success (exit code: ${result.code})")
+        return@withContext success
+    }
+
     fun install() {
         val start = SystemClock.elapsedRealtime()
+        val bundledFile = File(nativeLibraryDir, System.mapLibraryName("ksud"))
+        if (bundledFile.exists() && bundledFile.isFile) {
+            val bundledPath = shellQuote(bundledFile.absolutePath)
+            val libadbroot = runCatching { shellQuote(getNativeLibraryPath("adbroot")) }.getOrNull()
+            val adbRootArg = if (libadbroot != null) "--libadbroot $libadbroot" else ""
+            val shell = getRootShell()
+            shell.newJob().add(
+                "cp -f $bundledPath /data/adb/ksud.new",
+                "chmod 0755 /data/adb/ksud.new",
+                "/data/adb/ksud.new restorecon || chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new || true",
+                "mv -f /data/adb/ksud.new /data/adb/ksud",
+                "mkdir -p /data/adb/ksu/bin",
+                "rm -f /data/adb/ksu/bin/ksud",
+                "ln -sf /data/adb/ksud /data/adb/ksu/bin/ksud",
+                "/data/adb/ksud install $adbRootArg"
+            ).exec()
+        }
         val libadbroot = getNativeLibraryPath("adbroot")
         val result = execKsud("install --libadbroot $libadbroot", true)
         Log.w(TAG, "install result: $result, cost: ${SystemClock.elapsedRealtime() - start}ms")
