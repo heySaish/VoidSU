@@ -3,4 +3,4 @@
 CLAUDE.md
 AGENTS.md
 github_secrets.txt
-*.jks
+*.jksbuild_artifacts/
