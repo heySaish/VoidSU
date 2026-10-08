@@ -19,11 +19,12 @@ class SuSFSRepository(
     private val helper: SuSFSConfigHelper,
 ) {
     suspend fun getStatus(): SuSFSStatus {
-        val version = runCatching { helper.showVersion() }.getOrDefault("")
+        val version = runCatching { helper.showVersion() }.getOrDefault("").trim()
+        val isSupported = version.isNotBlank() && !version.lowercase().contains("disabled") && !version.lowercase().contains("not supported")
         return SuSFSStatus(
-            enabled = version.isNotEmpty(),
+            enabled = isSupported,
             version = version,
-            enabledFeatures = if (version.isEmpty()) "" else
+            enabledFeatures = if (!isSupported) "" else
                 runCatching { helper.showEnabledFeatures() }.getOrDefault(""),
         )
     }

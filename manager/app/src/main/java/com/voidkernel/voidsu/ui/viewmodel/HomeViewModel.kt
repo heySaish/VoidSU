@@ -155,7 +155,7 @@ class HomeViewModel(
                                     basicInfo.selinuxStatus
                                 },
                                 susfsEnabled = susfsInfo.enabled,
-                                susfsVersionSupported = susfsInfo.enabled,
+                                susfsVersionSupported = susfsInfo.enabled && susfsInfo.version.isNotBlank(),
                                 susfsVersion = susfsInfo.version,
                                 susfsFeatures = susfsInfo.enabledFeatures,
                                 managersList = managerInfo,
