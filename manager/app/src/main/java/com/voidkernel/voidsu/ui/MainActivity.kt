@@ -105,7 +105,6 @@ class MainActivity : ComponentActivity() {
 
             // Initialize app state once.
             if (!isInitialized) {
-                initializeViewModels()
                 initializeData()
                 isInitialized = true
             }
