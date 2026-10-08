@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.twotone.Article
 import androidx.compose.material.icons.automirrored.twotone.Undo
@@ -45,8 +46,11 @@ import androidx.compose.material.icons.twotone.Science
 import androidx.compose.material.icons.twotone.Security
 import androidx.compose.material.icons.twotone.Settings
 import androidx.compose.material.icons.twotone.Share
+import androidx.compose.material.icons.twotone.Speed
 import androidx.compose.material.icons.twotone.Tune
 import androidx.compose.material.icons.twotone.Update
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -54,6 +58,7 @@ import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
@@ -149,6 +154,7 @@ fun SettingsPage(bottomPadding: Dp) {
     ) { innerPadding ->
         val loadingDialog = rememberLoadingDialog()
         var showBottomsheet by remember { mutableStateOf(false) }
+        var showOptimizationBottomSheet by remember { mutableStateOf(false) }
         val logSaved = stringResource(R.string.log_saved)
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
@@ -442,6 +448,17 @@ fun SettingsPage(bottomPadding: Dp) {
                             )
                         }
 
+                        item {
+                            SettingsBaseWidget(
+                                icon = Icons.TwoTone.Speed,
+                                title = stringResource(R.string.optimize_voidsu),
+                                description = stringResource(R.string.optimize_voidsu_summary),
+                                onClick = {
+                                    showOptimizationBottomSheet = true
+                                }
+                            )
+                        }
+
                         item(visible = homeState.systemInfo.susfsVersionSupported) {
                             SettingsJumpPageWidget(
                                 icon = Icons.TwoTone.Tune,
@@ -534,6 +551,14 @@ fun SettingsPage(bottomPadding: Dp) {
                 }
             }
 
+            if (showOptimizationBottomSheet) {
+                item {
+                    OptimizationBottomSheet(
+                        onDismiss = { showOptimizationBottomSheet = false }
+                    )
+                }
+            }
+
             // 关于卡片
             item {
                 SegmentedColumn(
@@ -619,6 +644,151 @@ fun LogActionButton(
             text = text,
             style = MaterialTheme.typography.bodyMedium
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun OptimizationBottomSheet(
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var isOptimizing by remember { mutableStateOf(false) }
+    var statusText by remember { mutableStateOf<String?>(null) }
+    var statusIsSuccess by remember { mutableStateOf<Boolean?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceBright,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SPACING_LARGE)
+                .padding(bottom = SPACING_LARGE),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+            ) {
+                Icon(
+                    imageVector = Icons.TwoTone.Speed,
+                    contentDescription = stringResource(R.string.optimize_voidsu_title),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(SPACING_MEDIUM))
+
+            Text(
+                text = stringResource(R.string.optimize_voidsu_title),
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(modifier = Modifier.height(SPACING_MEDIUM))
+
+            Text(
+                text = stringResource(R.string.optimize_voidsu_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (statusText != null) {
+                Spacer(modifier = Modifier.height(SPACING_LARGE))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    color = when (statusIsSuccess) {
+                        true -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        false -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                ) {
+                    Text(
+                        text = statusText!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(SPACING_MEDIUM),
+                        color = when (statusIsSuccess) {
+                            true -> MaterialTheme.colorScheme.onPrimaryContainer
+                            false -> MaterialTheme.colorScheme.onErrorContainer
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(SPACING_LARGE))
+
+            Button(
+                onClick = {
+                    if (isOptimizing) return@Button
+                    isOptimizing = true
+                    statusText = context.getString(R.string.optimizing)
+                    statusIsSuccess = null
+
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val selinuxOut = com.topjohnwu.superuser.Shell.cmd("getenforce").exec().out.joinToString("").trim()
+                            val isEnforcing = selinuxOut.equals("Enforcing", ignoreCase = true)
+
+                            if (isEnforcing) {
+                                com.topjohnwu.superuser.Shell.cmd("setenforce 0").exec()
+                            }
+
+                            val compileRes = com.topjohnwu.superuser.Shell.cmd("cmd package compile -m speed -f com.voidkernel.voidsu").exec()
+
+                            if (isEnforcing) {
+                                com.topjohnwu.superuser.Shell.cmd("setenforce 1").exec()
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                isOptimizing = false
+                                if (compileRes.isSuccess) {
+                                    statusIsSuccess = true
+                                    statusText = context.getString(R.string.optimize_success)
+                                } else {
+                                    statusIsSuccess = false
+                                    val err = compileRes.err.joinToString("\n").ifEmpty { compileRes.out.joinToString("\n") }.ifEmpty { "Command failed" }
+                                    statusText = context.getString(R.string.optimize_failed, err)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                isOptimizing = false
+                                statusIsSuccess = false
+                                statusText = context.getString(R.string.optimize_failed, e.localizedMessage ?: "Unknown error")
+                            }
+                        }
+                    }
+                },
+                enabled = !isOptimizing,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isOptimizing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(SPACING_MEDIUM))
+                    Text(text = stringResource(R.string.optimizing))
+                } else {
+                    Icon(
+                        imageVector = Icons.TwoTone.Speed,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(SPACING_MEDIUM))
+                    Text(text = stringResource(R.string.optimize_now))
+                }
+            }
+        }
     }
 }
 

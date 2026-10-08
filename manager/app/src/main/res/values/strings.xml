@@ -87,6 +87,14 @@
     <string name="module_author">Author</string>
     <string name="show_system_apps">Show system apps</string>
     <string name="send_log">Send logs</string>
+    <string name="optimize_voidsu">Optimize VoidSU</string>
+    <string name="optimize_voidsu_summary">Perform AOT speed compilation for maximum performance</string>
+    <string name="optimize_voidsu_title">VoidSU Self-Optimization</string>
+    <string name="optimize_voidsu_desc">Compile VoidSU app using Android ART speed mode for faster startup and smoother performance. Temporarily switches SELinux to permissive if needed and restores enforcing status automatically.</string>
+    <string name="optimize_now">Optimize Now</string>
+    <string name="optimizing">Optimizing...</string>
+    <string name="optimize_success">VoidSU optimized successfully!</string>
+    <string name="optimize_failed">Optimization failed: %s</string>
     <string name="safe_mode">Safe mode</string>
     <string name="jailbreak_mode">Jailbreak mode</string>
     <string name="home_jailbreak">Jailbreak</string>
