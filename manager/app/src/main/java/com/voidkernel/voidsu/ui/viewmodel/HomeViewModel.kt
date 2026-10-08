@@ -126,6 +126,7 @@ class HomeViewModel(
                 homeStateRepository.update { it.copy(isRefreshing = refreshUI) }
                 try {
                     applyUserSettings()
+                    runCatching { ksuCliRepository.ensureKsudUpdated() }
                     val kernelStatus = runCatching { getKernelStatus() }
                         .getOrElse { uiState.value.systemStatus }
                     homeStateRepository.update {

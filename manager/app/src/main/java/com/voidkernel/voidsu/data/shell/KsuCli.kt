@@ -192,6 +192,14 @@ class KsuCliRepository(context: Context) {
         }
     }
 
+    private fun getInstalledKsudHash(shell: Shell, path: String): String {
+        val cmd = "sha256sum $path 2>/dev/null || toybox sha256sum $path 2>/dev/null || /data/adb/ksu/bin/busybox sha256sum $path 2>/dev/null"
+        val out = shell.newJob().add(cmd).to(ArrayList<String>(), null).exec().out
+        val line = out.firstOrNull()?.trim().orEmpty()
+        val hexMatch = Regex("([a-fA-F0-9]{64})").find(line)
+        return hexMatch?.value?.lowercase().orEmpty()
+    }
+
     suspend fun ensureKsudUpdated(): Boolean = withContext(Dispatchers.IO) {
         val bundledFile = File(nativeLibraryDir, System.mapLibraryName("ksud"))
         if (!bundledFile.exists() || !bundledFile.isFile) {
@@ -199,8 +207,8 @@ class KsuCliRepository(context: Context) {
             return@withContext false
         }
 
-        val bundledHash = getFileSha256(bundledFile)
-        if (bundledHash.isNullOrEmpty()) {
+        val bundledHash = getFileSha256(bundledFile)?.lowercase().orEmpty()
+        if (bundledHash.isEmpty()) {
             Log.w(TAG, "Failed to compute bundled ksud SHA-256")
             return@withContext false
         }
@@ -211,18 +219,20 @@ class KsuCliRepository(context: Context) {
             return@withContext false
         }
 
-        val installedHashCmd = "sha256sum /data/adb/ksud 2>/dev/null | awk '{print \$1}'"
-        val installedHash = shell.newJob().add(installedHashCmd).to(ArrayList<String>(), null).exec().out
-            .firstOrNull()?.trim()?.lowercase().orEmpty()
+        val daemonHash = getInstalledKsudHash(shell, "/data/adb/ksud")
+        val binHash = getInstalledKsudHash(shell, "/data/adb/ksu/bin/ksud")
 
-        Log.i(TAG, "ksud SHA-256 check -> Bundled: $bundledHash, Installed: $installedHash")
+        Log.i(TAG, "ksud SHA-256 check -> Bundled: $bundledHash, /data/adb/ksud: $daemonHash, /data/adb/ksu/bin/ksud: $binHash")
 
-        if (installedHash == bundledHash.lowercase()) {
-            Log.i(TAG, "Installed ksud matches bundled SHA-256. Skipping update.")
+        val daemonNeedsUpdate = daemonHash != bundledHash
+        val binNeedsUpdate = binHash != bundledHash
+
+        if (!daemonNeedsUpdate && !binNeedsUpdate) {
+            Log.i(TAG, "Installed ksud binaries match bundled SHA-256. Skipping update.")
             return@withContext true
         }
 
-        Log.i(TAG, "ksud hash mismatch or missing (/data/adb/ksud). Performing atomic replacement...")
+        Log.i(TAG, "ksud hash mismatch or missing (/data/adb/ksud: $daemonHash, /data/adb/ksu/bin/ksud: $binHash). Updating...")
 
         val bundledPath = shellQuote(bundledFile.absolutePath)
         val adbRootArg = runCatching { shellQuote(getNativeLibraryPath("adbroot")) }
@@ -232,8 +242,9 @@ class KsuCliRepository(context: Context) {
         val updateCmds = arrayOf(
             "cp -f $bundledPath /data/adb/ksud.new",
             "chmod 0755 /data/adb/ksud.new",
-            "/data/adb/ksud.new restorecon || chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new || true",
+            "chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new 2>/dev/null || restorecon /data/adb/ksud.new 2>/dev/null || true",
             "mv -f /data/adb/ksud.new /data/adb/ksud",
+            "chcon u:object_r:ksud_exec:s0 /data/adb/ksud 2>/dev/null || restorecon /data/adb/ksud 2>/dev/null || true",
             "mkdir -p /data/adb/ksu/bin",
             "rm -f /data/adb/ksu/bin/ksud",
             "ln -sf /data/adb/ksud /data/adb/ksu/bin/ksud",
@@ -257,8 +268,9 @@ class KsuCliRepository(context: Context) {
             shell.newJob().add(
                 "cp -f $bundledPath /data/adb/ksud.new",
                 "chmod 0755 /data/adb/ksud.new",
-                "/data/adb/ksud.new restorecon || chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new || true",
+                "chcon u:object_r:ksud_exec:s0 /data/adb/ksud.new 2>/dev/null || restorecon /data/adb/ksud.new 2>/dev/null || true",
                 "mv -f /data/adb/ksud.new /data/adb/ksud",
+                "chcon u:object_r:ksud_exec:s0 /data/adb/ksud 2>/dev/null || restorecon /data/adb/ksud 2>/dev/null || true",
                 "mkdir -p /data/adb/ksu/bin",
                 "rm -f /data/adb/ksu/bin/ksud",
                 "ln -sf /data/adb/ksud /data/adb/ksu/bin/ksud",
