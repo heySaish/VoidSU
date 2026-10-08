@@ -23,7 +23,6 @@ import com.voidkernel.voidsu.domain.model.StartupState
 import com.voidkernel.voidsu.domain.usecase.ApplyLanguageUseCase
 import com.voidkernel.voidsu.domain.usecase.EnsureManagerInstalledUseCase
 import com.voidkernel.voidsu.domain.usecase.ObserveStartupStateUseCase
-import com.voidkernel.voidsu.ui.activity.util.ThemeChangeContentObserver
 import com.voidkernel.voidsu.ui.activity.util.ThemeUtils
 import com.voidkernel.voidsu.ui.component.ZipFileInfo
 import com.voidkernel.voidsu.ui.theme.KernelSUTheme
@@ -55,7 +54,6 @@ class MainActivity : ComponentActivity() {
     private var showConfirmationDialog: MutableState<Boolean> = mutableStateOf(false)
     private var pendingZipFiles = mutableStateOf<List<ZipFileInfo>>(emptyList())
 
-    private lateinit var themeChangeObserver: ThemeChangeContentObserver
     private var isInitialized = false
 
     override fun attachBaseContext(newBase: Context?) {
@@ -172,11 +170,6 @@ class MainActivity : ComponentActivity() {
         intentState.value += 1
     }
 
-    private fun initializeViewModels() {
-        // Register theme change observer.
-        themeChangeObserver = themeUtils.registerThemeChangeObserver(this)
-    }
-
     private fun initializeData() {
         lifecycleScope.launch {
             try {
@@ -187,13 +180,13 @@ class MainActivity : ComponentActivity() {
         }
 
         // Initialize theme settings.
-        themeUtils.initializeThemeSettings(this, settingsViewModel)
+        themeUtils.initializeThemeSettings(settingsViewModel)
     }
 
     override fun onResume() {
         try {
             super.onResume()
-            themeUtils.onActivityResume(this)
+            themeUtils.onActivityResume()
             synchronizeUiSettings()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -211,15 +204,6 @@ class MainActivity : ComponentActivity() {
         try {
             super.onPause()
             themeUtils.onActivityPause()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    override fun onDestroy() {
-        try {
-            themeUtils.unregisterThemeChangeObserver(this, themeChangeObserver)
-            super.onDestroy()
         } catch (e: Exception) {
             e.printStackTrace()
         }

@@ -29,6 +29,7 @@ class ApplicationInitializationRepository(
         File(application.dataDir, "webroot").mkdirs()
         Os.setenv("TMPDIR", application.cacheDir.absolutePath, true)
         applicationScope.launch {
+            runCatching { monetCompatColorSource.refresh() }
             runCatching { flashRepository.getInstallEnvironment() }
         }
     }

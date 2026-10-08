@@ -1,26 +1,12 @@
 package com.voidkernel.voidsu.ui.activity.util
 
-import android.database.ContentObserver
-import android.os.Handler
-import android.provider.Settings
 import com.voidkernel.voidsu.data.AppSettingsRepository
 import com.voidkernel.voidsu.data.theme.ThemeRepository
-import com.voidkernel.voidsu.ui.MainActivity
 import com.voidkernel.voidsu.ui.theme.BackgroundManager
 import com.voidkernel.voidsu.ui.theme.CardConfig
 import com.voidkernel.voidsu.ui.theme.ThemeConfig
 import com.voidkernel.voidsu.ui.viewmodel.SettingsUiAction
 import com.voidkernel.voidsu.ui.viewmodel.SettingsViewModel
-
-class ThemeChangeContentObserver(
-    handler: Handler,
-    private val onThemeChanged: () -> Unit
-) : ContentObserver(handler) {
-    override fun onChange(selfChange: Boolean) {
-        super.onChange(selfChange)
-        onThemeChanged()
-    }
-}
 
 class ThemeUtils(
     private val settings: AppSettingsRepository,
@@ -30,33 +16,10 @@ class ThemeUtils(
     private val backgroundManager: BackgroundManager,
 ) {
 
-    fun initializeThemeSettings(activity: MainActivity, settingsViewModel: SettingsViewModel) {
+    fun initializeThemeSettings(settingsViewModel: SettingsViewModel) {
         settingsViewModel.dispatch(SettingsUiAction.InitializeFirstRun)
-        loadThemeSettings(activity)
+        loadThemeSettings()
         settingsViewModel.dispatch(SettingsUiAction.Initialize)
-    }
-
-    fun registerThemeChangeObserver(activity: MainActivity): ThemeChangeContentObserver {
-        val contentObserver = ThemeChangeContentObserver(Handler(activity.mainLooper)) {
-            activity.runOnUiThread {
-                if (!themeConfig.preventBackgroundRefresh) {
-                    themeConfig.backgroundImageLoaded = false
-                    backgroundManager.loadCustomBackground()
-                }
-            }
-        }
-
-        activity.contentResolver.registerContentObserver(
-            Settings.System.getUriFor("ui_night_mode"),
-            false,
-            contentObserver
-        )
-
-        return contentObserver
-    }
-
-    fun unregisterThemeChangeObserver(activity: MainActivity, observer: ThemeChangeContentObserver) {
-        activity.contentResolver.unregisterContentObserver(observer)
     }
 
     fun onActivityPause() {
@@ -65,13 +28,13 @@ class ThemeUtils(
         themeConfig.preventBackgroundRefresh = true
     }
 
-    fun onActivityResume(activity: MainActivity) {
+    fun onActivityResume() {
         settings.putBoolean("prevent_background_refresh", false)
         themeConfig.preventBackgroundRefresh = false
-        loadThemeSettings(activity)
+        loadThemeSettings()
     }
 
-    private fun loadThemeSettings(activity: MainActivity) {
+    private fun loadThemeSettings() {
         themeConfig.forceDarkMode = themeRepository.loadThemeMode()
         themeConfig.seedColor = themeRepository.loadSeedColor()
         themeConfig.useDynamicColor = themeRepository.loadDynamicColorState()
