@@ -68,6 +68,7 @@ fn get_info() -> ksu_uapi::ksu_get_info_cmd {
             version: 0,
             flags: 0,
             features: 0,
+            uapi_version: 0,
         };
         let _ = ksuctl(ksu_uapi::KSU_IOCTL_GET_INFO, &raw mut cmd);
         cmd

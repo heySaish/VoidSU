@@ -109,7 +109,7 @@ mod android {
         }
 
         let result = hasher.finalize();
-        Ok(format!("{result:x}"))
+        Ok(base16ct::lower::encode_string(&result))
     }
 
     pub(super) fn do_backup(
